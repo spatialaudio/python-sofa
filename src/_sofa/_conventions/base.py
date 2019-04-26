@@ -55,9 +55,8 @@ class _Base:
         dataset.EmitterDescription = ""
         return
 
-    def define_experiment(self, dataset, measurement_count, string_length):
+    def define_measurements(self, dataset, measurement_count):
         dataset.dataset.createDimension("M", measurement_count)
-        dataset.dataset.createDimension("S", string_length)
         return
     
     def _define_spatial_object(self, dataset, name, info_states, count=None):
@@ -69,7 +68,8 @@ class _Base:
         if info_states.Up is not data.spatial.State.Unused: spobj.set_default_Up(self.default_objects[name]["coordinates"].Up)
         return
         
-    def define_data(self, dataset, sample_count):
+    def define_data(self, dataset, sample_count, string_length):
+        if string_length>0: dataset.dataset.createDimension("S", string_length)
         dataset.dataset.createDimension("N", sample_count)
         dataset.Data.create(self.default_data)
         return
