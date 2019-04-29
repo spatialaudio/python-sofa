@@ -28,7 +28,7 @@ from enum import Enum
 import netCDF4 as ncdf
 from datetime import datetime
 
-def rooms():
+def implemented_rooms():
     """Implemented SOFA room types
     
     Returns
@@ -38,7 +38,7 @@ def rooms():
     """
     return list(rooms.List.keys())
 
-def datatypes():
+def implemented_datatypes():
     """Implemented SOFA data types
     
     Returns
@@ -48,7 +48,7 @@ def datatypes():
     """
     return list(data.datatypes.List.keys())
 
-def conventions():
+def implemented_conventions():
     """Implemented SOFA dataconventions
     
     Returns
@@ -71,7 +71,7 @@ class InfoState(Enum):
 class SpatialInfo:
     """Descriptors or data for a spatial entity (Listener, Source, Receiver, Emitter)"""
 
-    def __init___(self, Position, View=InfoState.Unused, Up=InfoState.Unused):
+    def __init__(self, Position, View=InfoState.Unused, Up=InfoState.Unused):
         """Initializes the information for Position, View and Up
 
         Parameters

@@ -29,7 +29,7 @@ class _Base:
             "Real" : 0,
             "Imag" : 0,
             "N" : 0,
-            "N.Longname" : "frequency",
+            "N.LongName" : "frequency",
 
             "SOS" : 0 #TODO permute([0 0 0 1 0 0],[3 1 2])
             }
@@ -63,9 +63,10 @@ class _Base:
         spobj = getattr(dataset, name)
         if count is None: spobj.define(info_states)
         else: spobj.define(count, info_states)
-        if info_states.Position is not data.spatial.State.Unused: spobj.set_default_Position(self.default_objects[name]["coordinates"].Position, self.default_objects[name]["system"])
-        if info_states.View is not data.spatial.State.Unused: spobj.set_default_View(self.default_objects[name]["coordinates"].View)
-        if info_states.Up is not data.spatial.State.Unused: spobj.set_default_Up(self.default_objects[name]["coordinates"].Up)
+        if info_states.Position is not data.spatial.State.Unused:
+            spobj.Position.set_default(self.default_objects[name]["coordinates"].Position, coordinate_type=self.default_objects[name]["system"])
+        if info_states.View is not data.spatial.State.Unused: spobj.View.set_default(self.default_objects[name]["coordinates"].View,  coordinate_type=self.default_objects[name]["system"])
+        if info_states.Up is not data.spatial.State.Unused: spobj.Up.set_default(self.default_objects[name]["coordinates"].Up, coordinate_type=self.default_objects[name]["system"])
         return
         
     def define_data(self, dataset, sample_count, string_length):

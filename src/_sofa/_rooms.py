@@ -26,13 +26,13 @@ class Reverberant(_Base):
         return
     
 class Shoebox(_Base):
-    @util.DatasetVariable()
-    def CornerA(self): return "RoomCornerA"
-    @util.DatasetVariable()
-    def CornerB(self): return "RoomCornerB"
+    @property
+    def CornerA(self): return Coordinates(self.dataset, "RoomCorner", "A")
+    @property
+    def CornerB(self): return Coordinates(self.dataset, "RoomCorner", "B")
         
     def create(self, a_varies, b_varies):
-        self.CornerA = DimensionSet.RoomCorner(a_varies)
+        self.CornerA.Values = DimensionSet.RoomCorner(a_varies)
         self.CornerA.Type = "cartesian"
         self.CornerA.Units = "meter"
         self.CornerA.Description = ""
@@ -45,18 +45,18 @@ class types(Enum):
         Reverb = "reverberant"
         Shoebox = "shoebox"
         pass
-   
-_type_classes = {
-    types.FreeField : FreeField,
-    types.Reverb : Reverberant,
-    types.Shoebox : Shoebox
+
+List = {
+    types.FreeField.value : FreeField,
+    types.Reverb.value : Reverberant,
+    types.Shoebox.value : Shoebox
 }
     
 def get(dataset):
-    for typename in _type_classes.keys():
+    for typename in List.keys():
         if dataset.RoomType == typename: 
-            return _type_classes[typename](dataset)
+            return List[typename](dataset)
         pass
     #print("Unknown RoomType", file.RoomType)
-        return _type_classes[types.Reverb](dataset)
+        return List[types.Reverb.value](dataset)
 

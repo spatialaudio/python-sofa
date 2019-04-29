@@ -21,19 +21,19 @@ class SingleRoomDRIR(_Base):
 
     def define_spatial_object(self, dataset, name, info_states, count=None):
         if name is "Listener":
-            if info_states.View is data.State.Unused:
+            if info_states.View is data.spatial.State.Unused:
                 print("Invalid Listener setup, assuming fixed View")
-                info_states.View = data.State.Fixed
-            if info_states.Up is data.State.Unused:
+                info_states.View = data.spatial.State.Fixed
+            if info_states.Up is data.spatial.State.Unused:
                 print("Invalid Listener setup, assuming fixed Up")
-                info_states.Up = data.State.Fixed
+                info_states.Up = data.spatial.State.Fixed
         if name is "Source":
-            if info_states.View is data.State.Unused:
+            if info_states.View is data.spatial.State.Unused:
                 print("Invalid Source setup, assuming fixed View")
-                info_states.View = data.State.Fixed
-            if info_states.Up is data.State.Unused:
+                info_states.View = data.spatial.State.Fixed
+            if info_states.Up is data.spatial.State.Unused:
                 print("Invalid Source setup, assuming fixed Up")
-                info_states.Up = data.State.Fixed
+                info_states.Up = data.spatial.State.Fixed
         
         _Base._define_spatial_object(self, dataset, name, info_states, count)
         return
