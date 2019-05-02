@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 __version__ = "unknown"
 
 # "import" __version__
-for line in open("src/sofa.py"):
+for line in open("src/sofa/__init__.py"):
     if line.startswith("__version__"):
         exec(line)
         break

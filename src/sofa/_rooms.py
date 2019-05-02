@@ -1,3 +1,5 @@
+__all__ = ["implemented", "FreeField", "Reverberant", "Shoebox"]
+
 from . import util
 from enum import Enum
 
@@ -60,3 +62,10 @@ def get(dataset):
     #print("Unknown RoomType", file.RoomType)
         return List[types.Reverb.value](dataset)
 
+def implemented():
+    """Returns
+    -------
+    list
+        Names of implemented SOFA room types
+    """
+    return list(List.keys())
