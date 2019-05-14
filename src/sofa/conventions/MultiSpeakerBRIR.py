@@ -20,34 +20,32 @@
 
 from .base import _Base
 
-from .. import _data as data
-from .. import _rooms as rooms
+from .. import spatial
 
-import numpy as np
-
-class SimpleFreeFieldTF(_Base):
-    name = "SimpleFreeFieldTF"
-    version = "1.0"
+class MultiSpeakerBRIR(_Base):
+    name = "MultiSpeakerBRIR"
+    version = "0.3"
     def __init__(self):
         _Base.__init__(self)
         self.default_objects["Source"]["coordinates"].Position = [0,0,1]
-        self.default_objects["Source"]["system"] = data.spatial.Coordinates.System.Spherical
-        self.default_objects["Emitter"]["count"] = 1
+        self.default_objects["Source"]["system"] = spatial.Coordinates.System.Spherical
         self.default_objects["Receiver"]["count"] = 2
+
+        self.default_data["IR"]=1
 
         self.head_radius = 0.09
 
-        self.conditions["must have 1 Emitter"] = lambda name, info_states, count: name != "Emitter" or count == 1
         self.conditions["must have 2 Receivers"] = lambda name, info_states, count: name != "Receiver" or count == 2
-        self.conditions["must have Listener Up and View)"] = lambda name, info_states, count: name != "Listener" or (not data.spatial.Coordinates.State.is_used(info_states.Up))
+        self.conditions["must have Listener Up and View)"] = lambda name, info_states, count: name != "Listener" or (not spatial.Coordinates.State.is_used(info_states.Up))
+        self.conditions["must have both Emitter View and Up or neither"] = lambda name, info_states, count: name != "Emitter" or (spatial.Coordinates.State.is_used(info_states.View) == data.spatial.Coordinates.State.is_used(info_states.Up))
 
     def add_metadata(self, dataset):
         _Base.add_general_defaults(dataset)
 
         dataset.SOFAConventions = self.name
         dataset.SOFAConventionsVersion = self.version
-        dataset.DataType = "TF"
-        dataset.RoomType = rooms.types.FreeField.value
+        dataset.DataType = "FIRE"
+        dataset.RoomType = "reverberant"
         dataset.DatabaseName = ""
         dataset.ListenerShortName = ""
         return

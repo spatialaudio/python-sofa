@@ -18,43 +18,27 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-"""python-SOFA.
-"""
-__version__ = "0.1.0"
+from .base import _Base
 
-__all__=["implemented"]
+from .. import spatial
 
-from . import base
+class GeneralFIR(_Base):
+    name = "GeneralFIR"
+    version = "1.0"
+    def __init__(self):
+        _Base.__init__(self)
+        self.default_objects["Source"]["coordinates"].Position = [0,0,1]
+        self.default_objects["Source"]["system"] = spatial.Coordinates.System.Spherical
 
-from . import GeneralFIR
-from . import GeneralTF
-from . import SimpleFreeFieldHRIR
+    def add_metadata(self, dataset):
+        _Base.add_general_defaults(dataset)
 
-from . import GeneralFIRE
-from . import MultiSpeakerBRIR
-from . import SimpleFreeFieldTF
-from . import SimpleFreeFieldSOS
-#from . import SimpleHeadphoneIR
-from . import SingleRoomDRIR
+        dataset.SOFAConventions = self.name
+        dataset.SOFAConventionsVersion = self.version
+        dataset.DataType = "FIR"
+        dataset.RoomType = "free field"
+        return
 
-List = {
-    "GeneralFIR" : GeneralFIR.GeneralFIR,
-    "GeneralTF" : GeneralTF.GeneralTF,
-    "SimpleFreeFieldHRIR" : SimpleFreeFieldHRIR.SimpleFreeFieldHRIR,
-
-    "GeneralFIRE" : GeneralFIRE.GeneralFIRE,
-    "MultiSpeakerBRIR" : MultiSpeakerBRIR.MultiSpeakerBRIR,
-    "SimpleFreeFieldTF" : SimpleFreeFieldTF.SimpleFreeFieldTF,
-    "SimpleFreeFieldSOS" : SimpleFreeFieldSOS.SimpleFreeFieldSOS,
-#    "SimpleHeadphoneIR" : SimpleHeadphoneIR.SimpleHeadphoneIR,
-    "SingleRoomDRIR" : SingleRoomDRIR.SingleRoomDRIR
-    }
-
-def implemented():
-    """Returns
-    -------
-    list
-        Names of implemented SOFA conventions
-    """
-    #TODO: versionize convention implementations
-    return list(List.keys())
+    def set_default_spatial_values(self, spobj):
+        _Base._set_default_spatial_values(self, spobj)
+        return

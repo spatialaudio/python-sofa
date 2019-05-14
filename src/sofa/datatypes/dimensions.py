@@ -19,79 +19,49 @@
 # THE SOFTWARE.
 
 from enum import Enum
-from . import spatial
+from .. import spatial
 
 default_units = {
     spatial.Coordinates.System.Cartesian : "meter",
     spatial.Coordinates.System.Spherical : "degree, degree, meter",
     "frequency" : "hertz"
     }
-
-class DimensionAccess:
-    """Access the .sofa file's dimensions"""
-    def __init__(self, dataset):
-        self.dataset = dataset
-        return
-    
-    @property
-    def I(self): 
-        """Scalar dimension"""
-        return self.dataset.dimensions["I"].size
-    
-    @property
-    def C(self): 
-        """Coordinate dimension"""
-        return self.dataset.dimensions["C"].size
-    @property
-    def M(self): 
-        """Number of measurements"""
-        return self.dataset.dimensions["M"].size
-    @property
-    def R(self): 
-        """Number of receivers"""
-        return self.dataset.dimensions["R"].size
-    @property
-    def E(self): 
-        """Number of emitters"""
-        return self.dataset.dimensions["E"].size
-    @property
-    def N(self): 
-        """Number of data samples per measurement"""
-        return self.dataset.dimensions["N"].size
-    @property
-    def S(self): 
-        """Largest data string size"""
-        return self.dataset.dimensions["S"].size
     
 class Definitions:
     def Listener(varies=False):
+        if type(varies) != bool: varies = varies.value
         if varies: return ("M","C",)
         return ("I","C",)
     def Source(varies=False):
+        if type(varies) != bool: varies = varies.value
         if varies: return ("M","C",)
         return ("I","C",)
     
     
     def Receiver(varies=False):
+        if type(varies) != bool: varies = varies.value
         if varies: return ("R","C","M",)
         return ("R","C","I",)
     def Emitter(varies=False):
+        if type(varies) != bool: varies = varies.value
         if varies: return ("E","C","M",)
         return ("E","C","I",)
     
     
     def RoomCorner(varies=False):
+        if type(varies) != bool: varies = varies.value
         if varies: return ("M","C",)
         return ("I","C",)
     
     
     def DataValues(datatype):
-        if datatype is "FIRE": return ("M","R","E","N",)
+        if datatype == "FIRE": return ("M","R","E","N",)
         return ("M","R","N",)
     def DataDelay(datatype, varies=False):
+        if type(varies) != bool: varies = varies.value
         tup = ("I","R",)
         if varies: tup = ("M","R",)
-        if datatype is "FIRE": return tup+("E",)
+        if datatype == "FIRE": return tup+("E",)
         return tup
     def DataSamplingRate(datatype):
         return ("I",)

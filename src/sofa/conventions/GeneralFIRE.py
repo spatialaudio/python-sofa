@@ -20,24 +20,23 @@
 
 from .base import _Base
 
-from .. import _data as data
-from .. import _rooms as rooms
+from .. import spatial
 
-class GeneralTF(_Base):
-    name = "GeneralTF"
+class GeneralFIRE(_Base):
+    name = "GeneralFIRE"
     version = "1.0"
     def __init__(self):
         _Base.__init__(self)
         self.default_objects["Source"]["coordinates"].Position = [0,0,1]
-        self.default_objects["Source"]["system"] = data.spatial.Coordinates.System.Spherical
+        self.default_objects["Source"]["system"] = spatial.Coordinates.System.Spherical
 
     def add_metadata(self, dataset):
         _Base.add_general_defaults(dataset)
 
         dataset.SOFAConventions = self.name
         dataset.SOFAConventionsVersion = self.version
-        dataset.DataType = "TF"
-        dataset.RoomType = rooms.types.FreeField.value
+        dataset.DataType = "FIRE"
+        dataset.RoomType = "free field"
         return
 
     def set_default_spatial_values(self, spobj):

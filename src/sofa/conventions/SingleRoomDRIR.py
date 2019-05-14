@@ -18,14 +18,31 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-from .FIR import FIR
 from .base import _Base
-from . import dimensions
 
-from .. import _util as util
+from .. import spatial
 
-class FIRE(FIR):
-    def _create(self, default_values):
-        FIR._create(self, default_values)
-        return    
+class SingleRoomDRIR(_Base):
+    name = "SingleRoomDRIR"
+    version = "0.3"
+    def __init__(self):
+        _Base.__init__(self)
+        self.default_objects["Source"]["coordinates"].View = [-1,0,0]
+        self.default_objects["Emitter"]["count"] = 1
 
+        self.conditions["must have 1 Emitter"] = lambda name, info_states, count: name != "Emitter" or count == 1
+        self.conditions["must have Listener Up and View)"] = lambda name, info_states, count: name != "Listener" or (not spatial.Coordinates.State.is_used(info_states.Up))
+        self.conditions["must have Source Up and View)"] = lambda name, info_states, count: name != "Source" or (not spatial.Coordinates.State.is_used(info_states.Up))
+
+    def add_metadata(self, dataset):
+        _Base.add_general_defaults(dataset)
+
+        dataset.SOFAConventions = self.name
+        dataset.SOFAConventionsVersion = self.version
+        dataset.DataType = "FIR"
+        dataset.RoomType = "reverberant"
+        return
+
+    def set_default_spatial_values(self, spobj):
+        _Base._set_default_spatial_values(self, spobj)
+        return

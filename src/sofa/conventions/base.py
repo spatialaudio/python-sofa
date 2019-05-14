@@ -18,39 +18,39 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-from .. import _data as data
+from .. import datatypes
+from .. import spatial
 
 class _Base:
     def __init__(self):
         self.default_objects = {
             "Listener" : {
                 "count" : 1,
-                "coordinates" : data.spatial.Set(Position=[0,0,0], View=[1,0,0], Up=[0,0,1]),
-                "system" : data.spatial.Coordinates.System.Cartesian
+                "coordinates" : spatial.Set(Position=[0,0,0], View=[1,0,0], Up=[0,0,1]),
+                "system" : spatial.Coordinates.System.Cartesian
                 },
             "Receiver" : {
-                "coordinates" : data.spatial.Set(Position=[0,0,0], View=[1,0,0], Up=[0,0,1]),
-                "system" : data.spatial.Coordinates.System.Cartesian
+                "coordinates" : spatial.Set(Position=[0,0,0], View=[1,0,0], Up=[0,0,1]),
+                "system" : spatial.Coordinates.System.Cartesian
                 },
             "Source" : {
                 "count" : 1,
-                "coordinates" : data.spatial.Set(Position=[0,0,0], View=[1,0,0], Up=[0,0,1]),
-                "system" : data.spatial.Coordinates.System.Cartesian
+                "coordinates" : spatial.Set(Position=[0,0,0], View=[1,0,0], Up=[0,0,1]),
+                "system" : spatial.Coordinates.System.Cartesian
                 },
             "Emitter" : {
-                "coordinates" : data.spatial.Set(Position=[0,0,0], View=[1,0,0], Up=[0,0,1]),
-                "system" : data.spatial.Coordinates.System.Cartesian
+                "coordinates" : spatial.Set(Position=[0,0,0], View=[1,0,0], Up=[0,0,1]),
+                "system" : spatial.Coordinates.System.Cartesian
                 },
             }
-        self.conditions = {"Position required" : lambda name, info_states, count: data.spatial.Coordinates.State.is_used(info_states.Position),
+        self.conditions = {"Position required" : lambda name, info_states, count: spatial.Coordinates.State.is_used(info_states.Position),
             "only 1 Listener considered" : lambda name, info_states, count: name != "Listener" or count == 1,
             "only 1 Source considered" : lambda name, info_states, count: name != "Source" or count == 1,
-            "Up requires View" : lambda name, info_states, count: (not data.spatial.Coordinates.State.is_used(info_states.Up)) or (data.spatial.Coordinates.State.is_used(info_states.View)),
+            "Up requires View" : lambda name, info_states, count: (not spatial.Coordinates.State.is_used(info_states.Up)) or (spatial.Coordinates.State.is_used(info_states.View)),
             }
         self.default_data = {
             "IR" : 0,
             "Delay" : 0,
-            "DelayVaries" : False,
             "SamplingRate" : 48000,
 
             "Real" : 0,
@@ -92,7 +92,7 @@ class _Base:
 
     def _set_default_spatial_values(self, spobj):
         name = spobj.name
-        rd = tuple(x for x in getattr(data.dimensions.Definitions, name)(data.spatial.Coordinates.State.Varying) if x!="C")
+        rd = tuple(x for x in getattr(datatypes.dimensions.Definitions, name)(spatial.Coordinates.State.Varying) if x!="C")
         if spobj.Position.exists():
             spobj.Position.set_values(self.default_objects[name]["coordinates"].Position, repeat_dim=rd)
             spobj.Position.set_system(self.default_objects[name]["system"])
@@ -103,9 +103,4 @@ class _Base:
             spobj.Up.set_values(self.default_objects[name]["coordinates"].Up, repeat_dim=rd)
         return
         
-    def define_data(self, dataset, sample_count, string_length):
-        if string_length>0: dataset.dataset.createDimension("S", string_length)
-        dataset.dataset.createDimension("N", sample_count)
-        dataset.Data._create(self.default_data)
-        return
 

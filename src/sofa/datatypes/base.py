@@ -18,38 +18,18 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-"""DataType-specific access to measurement data.
-"""
-__version__ = "0.1.0"
-
-__all__=["implemented", "FIR", "FIRE", "SOS", "TF"]
-
-from . import dimensions
-from . import spatial
-
-from .FIR import FIR
-from .TF import TF
-
-from .FIRE import FIRE
-from .SOS import SOS
-
-##############################
-List = {
-    "FIR" : FIR,
-    "TF" : TF,
-    "FIRE" : FIRE,
-    "SOS" : SOS
-}
+class _Base:
+    def __init__(self, database):
+        self.database = database
+        
+    @property
+    def Type(self): 
+        """SOFA data type"""
+        return self.database.dataset.DataType
+    @Type.setter
+    def Type(self, value): self.database.dataset.DataType = value
     
-def get(dataset):
-    if dataset.DataType in List.keys(): return List[dataset.DataType](dataset)
-    print("Unknown DataType", file.DataType, ", returning FIR instead")
-    return List["FIR"](dataset)
-
-def implemented():
-    """Returns
-    -------
-    list
-        Names of implemented SOFA data types
-    """
-    return list(List.keys())
+    def _initialize_dimensions(self, sample_count, string_length = 0):
+        if string_length>0: self.database.dataset.createDimension("S", string_length)
+        self.database.dataset.createDimension("N", sample_count)
+        

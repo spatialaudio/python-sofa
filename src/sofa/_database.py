@@ -22,11 +22,12 @@
 """
 __version__='0.1.0'
 
-from . import _access as access
-from . import _util as util
-from . import _data as data
-from . import _rooms as rooms
-from . import _conventions as conventions
+from . import access
+from . import datatypes
+from . import roomtypes
+from . import conventions
+
+from . import spatial
 
 from enum import Enum
 import netCDF4 as ncdf
@@ -46,40 +47,23 @@ class Database:
         self._Emitter = None
 
         self._Metadata = None
-      
-    @staticmethod  
-    def open(path, mode='r'):
-        """Parameters
-        ----------
-        path : str
-            Relative or absolute path to .sofa file
-        
-        mode : str, optional
-            File access mode ('r': readonly, 'r+': read/write)
-        """
-        if mode == 'w':
-            print("Invalid file creation method, use create instead.")
-            return None
-        sofa = Database()
-        sofa.dataset = ncdf.Dataset(path, mode=mode)
-        if sofa.dataset.SOFAConventions in conventions.implemented():
-            sofa.convention = conventions.List[sofa.dataset.SOFAConventions]()
-        else:
-            default = "General"+sofa.dataset.DataType
-            sofa.convention = conventions.List[default]()
-        return sofa
 
     @staticmethod
-    def create(path, convention):
+    def create(path, convention, measurements):
         """Create a new .sofa file following a SOFA convention
 
         Parameters
         ----------
         path : str
-            Relative or absolute path to .sofa file
-    
+            Relative or absolute path to .sofa file    
         convention : str
             Name of the SOFA convention to create, see :func:`sofa.conventions.implemented`
+        measurements : int
+            Number of measurements
+
+        Returns
+        -------
+        database : :class:`sofa.Database`
         """
         sofa = Database()
         sofa.dataset = ncdf.Dataset(path, mode="w")
@@ -87,14 +71,37 @@ class Database:
         
         sofa._convention.add_metadata(sofa.dataset)
         sofa.DateCreated = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+        sofa._convention.define_measurements(sofa, measurements)
+        return sofa
+      
+    @staticmethod  
+    def open(path, mode='r', parallel=False):
+        """Parameters
+        ----------
+        path : str
+            Relative or absolute path to .sofa file
+        mode : str, optional
+            File access mode ('r': readonly, 'r+': read/write)
+        parallel : bool, optional
+            Whether to open the file with parallel access enabled
+
+        Returns
+        -------
+        database : :class:`sofa.Database`
+        """
+        if mode == 'w':
+            print("Invalid file creation method, use create instead.")
+            return None
+        sofa = Database()
+        sofa.dataset = ncdf.Dataset(path, mode=mode, parallel=parallel)
+        if sofa.dataset.SOFAConventions in conventions.implemented():
+            sofa.convention = conventions.List[sofa.dataset.SOFAConventions]()
+        else:
+            default = "General"+sofa.dataset.DataType
+            sofa.convention = conventions.List[default]()
         return sofa
 
-    def save(self):
-#        """Save the underlying NETCDF4 dataset"""
-        if self.dataset == None: return
-        self.DateModified = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        self.dataset.sync()
-            
     def close(self):
 #        """Save and close the underlying NETCDF4 dataset"""
         try: 
@@ -114,50 +121,26 @@ class Database:
         self._Metadata = None
 
         return 
-    
-    def initialize_room(self, room=None): #TODO: move to rooms
-        """Initializes the variables and attributes associated with the room of the experimental setup
-        
-        Parameters
-        ----------
-        room : str, optional
-            Name of the room type to be initialized
-        """
-        if room is not None: self.Room.Type = room
-        self.Room.create()
-        return
 
-    def initialize_measurements(self, measurements):
-        """Defines the number of measurements to be recorded
-        
-        Parameters
-        ----------
-        measurements : int
-            Number of measurements
-        """
-        self._convention.define_measurements(self, measurements)
-        return
-
-    def initialize_data(self, samples, string_length = 0):
-        """Initializes the dimensions and variables associated with the convention's data
-        
-        Parameters
-        ----------
-        samples : int
-            Number of data samples per measurement
-        string_length: int, optional
-            Maximum length of data recorded as strings
-        """
-        self._convention.define_data(self, samples, string_length)
-        return
+    def save(self):
+#        """Save the underlying NETCDF4 dataset"""
+        if self.dataset == None: return
+        self.DateModified = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        self.dataset.sync()
+            
+    ## data
+    @property
+    def Data(self): 
+        """DataType specific access for the measurement data, see :mod:`sofa.datatypes`"""
+        return datatypes.get(self)
 
     @property
     def Dimensions(self): 
-        """:class:`sofa.DimensionAccess` for the file dimensions"""
+        """:class:`sofa.access.Dimensions` for the database dimensions"""
         if self.dataset is None: 
             print("No dataset open!")
             return None
-        if self._Dimensions is None: self._Dimensions = data.dimensions.DimensionAccess(self.dataset)
+        if self._Dimensions is None: self._Dimensions = access.Dimensions(self.dataset)
         return self._Dimensions
     
     ## experimental setup
@@ -167,7 +150,7 @@ class Database:
         if self.dataset is None: 
             print("No dataset open!")
             return None
-        if self._Listener is None: self._Listener = data.spatial.Object(self, "Listener")
+        if self._Listener is None: self._Listener = spatial.Object(self, "Listener")
         return self._Listener
     
     @property
@@ -176,7 +159,7 @@ class Database:
         if self.dataset is None: 
             print("No dataset open!")
             return None
-        if self._Source is None: self._Source = data.spatial.Object(self, "Source")
+        if self._Source is None: self._Source = spatial.Object(self, "Source")
         return self._Source
     
     @property
@@ -185,7 +168,7 @@ class Database:
         if self.dataset is None: 
             print("No dataset open!")
             return None
-        if self._Receiver is None: self._Receiver = data.spatial.Object(self, "Receiver")
+        if self._Receiver is None: self._Receiver = spatial.Object(self, "Receiver")
         return self._Receiver
     
     @property
@@ -194,28 +177,22 @@ class Database:
         if self.dataset is None: 
             print("No dataset open!")
             return None
-        if self._Emitter is None: self._Emitter = data.spatial.Object(self, "Emitter")
+        if self._Emitter is None: self._Emitter = spatial.Object(self, "Emitter")
         return self._Emitter
         
     ## room
     @property
     def Room(self): 
         """RoomType specific access for the room data, see :mod:`sofa.roomtypes`"""
-        return rooms.get(self.dataset)
+        return roomtypes.get(self)
     
-    ## data
-    @property
-    def Data(self): 
-        """DataType specific access for the measurement data, see :mod:`sofa.datatypes`"""
-        return data.get(self.dataset)
-
     ## metadata
     @property
     def Metadata(self): 
-        """:class:`sofa.Metadata` for the file metadata"""
+        """:class:`sofa.access.Metadata` for the database metadata"""
         if self.dataset is None: 
             print("No dataset open!")
             return None
-        if self._Metadata is None: self._Metadata = access.MetadataAccess(self.dataset)
+        if self._Metadata is None: self._Metadata = access.Metadata(self.dataset)
         return self._Metadata
 

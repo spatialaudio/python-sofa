@@ -18,17 +18,37 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-"""Python SOFA API for reading, writing and creating .sofa files.
+"""Classes for accessing DataType-specific measurement data.
 """
 __version__ = "0.1.0"
 
-__all__=["access", "conventions", "datatypes", "roomtypes", "spatial", "Database"]
+__all__=["implemented", "FIR", "FIRE", "SOS", "TF"]
 
-from . import access
-from . import datatypes
-from . import spatial
-from . import roomtypes
-from . import conventions
-from ._database import Database
+from . import dimensions
 
-#####################################
+from .FIR import FIR
+from .TF import TF
+
+from .FIRE import FIRE
+from .SOS import SOS
+
+##############################
+List = {
+    "FIR" : FIR,
+    "TF" : TF,
+    "FIRE" : FIRE,
+    "SOS" : SOS
+}
+    
+def get(database):
+    if database.dataset.DataType in List.keys(): return List[database.dataset.DataType](database)
+    print("Unknown DataType", file.DataType, ", returning FIR instead")
+    return List["FIR"](database)
+
+def implemented():
+    """Returns
+    -------
+    list
+        Names of implemented SOFA data types
+    """
+    return list(List.keys())

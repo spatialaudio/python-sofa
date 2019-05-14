@@ -20,34 +20,31 @@
 
 from .base import _Base
 
-from .. import _data as data
-from .. import _rooms as rooms
+from .. import spatial
 
-import numpy as np
-
-### incomplete! Requires extending the data access to include per-measurement strings
-class SimpleHeadphoneIR(_Base):
-    name = "SimpleHeadphoneIR"
-    version = "0.2"
+class SimpleFreeFieldSOS(_Base):
+    name = "SimpleFreeFieldSOS"
+    version = "1.0"
     def __init__(self):
         _Base.__init__(self)
         self.default_objects["Source"]["coordinates"].Position = [0,0,1]
-        self.default_objects["Source"]["system"] = data.spatial.Coordinates.System.Spherical
-        self.default_objects["Emitter"]["count"] = 2
+        self.default_objects["Source"]["system"] = spatial.Coordinates.System.Spherical
+        self.default_objects["Emitter"]["count"] = 1
         self.default_objects["Receiver"]["count"] = 2
 
         self.head_radius = 0.09
 
-        self.conditions["must have 2 Emitters"] = lambda name, info_states, count: name != "Emitter" or count == 2
+        self.conditions["must have 1 Emitter"] = lambda name, info_states, count: name != "Emitter" or count == 1
         self.conditions["must have 2 Receivers"] = lambda name, info_states, count: name != "Receiver" or count == 2
+        self.conditions["must have Listener Up and View)"] = lambda name, info_states, count: name != "Listener" or (not spatial.Coordinates.State.is_used(info_states.Up))
 
     def add_metadata(self, dataset):
         _Base.add_general_defaults(dataset)
 
         dataset.SOFAConventions = self.name
         dataset.SOFAConventionsVersion = self.version
-        dataset.DataType = "FIR"
-        dataset.RoomType = rooms.types.FreeField.value
+        dataset.DataType = "SOS"
+        dataset.RoomType = "free field"
         dataset.DatabaseName = ""
         dataset.ListenerShortName = ""
         return
@@ -55,13 +52,9 @@ class SimpleHeadphoneIR(_Base):
     def set_default_spatial_values(self, spobj):
         _Base._set_default_spatial_values(self, spobj)
 
-        self.set_default_Emitter(spobj)
         self.set_default_Receiver(spobj)
         return
     
-    def set_default_Emitter(self, spobj):
-        if spobj.name != "Emitter": return
-        spobj.Position.set_values([[0,self.head_radius,0], [0,-self.head_radius,0]], dim_order=("E", "C"), repeat_dim=("M"))
     def set_default_Receiver(self, spobj):
         if spobj.name != "Receiver": return
         spobj.Position.set_values([[0,self.head_radius,0], [0,-self.head_radius,0]], dim_order=("R", "C"), repeat_dim=("M"))

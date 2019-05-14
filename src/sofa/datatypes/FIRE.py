@@ -18,29 +18,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-from .base import _Base
+from .FIR import FIR
 
-from .. import _data as data
-from .. import _rooms as rooms
-
-class GeneralFIRE(_Base):
-    name = "GeneralFIRE"
-    version = "1.0"
-    def __init__(self):
-        _Base.__init__(self)
-        self.default_objects["Source"]["coordinates"].Position = [0,0,1]
-        self.default_objects["Source"]["system"] = data.spatial.Coordinates.System.Spherical
-
-    def add_metadata(self, dataset):
-        _Base.add_general_defaults(dataset)
-
-        dataset.SOFAConventions = self.name
-        dataset.SOFAConventionsVersion = self.version
-        dataset.DataType = "FIRE"
-        dataset.RoomType = rooms.types.FreeField.value
-        return
-
-    def set_default_spatial_values(self, spobj):
-        _Base._set_default_spatial_values(self, spobj)
-        return
+class FIRE(FIR):
+    def _create(self, default_values):
+        FIR._create(self, default_values)
+        return    
 

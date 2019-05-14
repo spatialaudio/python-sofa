@@ -4,25 +4,30 @@ API Documentation
 .. automodule:: sofa
     :members:
 
-Conventions
+sofa.access
 -----------
+.. automodule:: sofa.access
+    :inherited-members:
+    :members:
+
+sofa.conventions
+----------------
 .. automodule:: sofa.conventions
     :members:
 
-Datatypes
----------
+sofa.datatypes
+--------------
 .. automodule:: sofa.datatypes
     :inherited-members:
     :members:
 
-Roomtypes
----------
+sofa.roomtypes
+--------------
 .. automodule:: sofa.roomtypes
     :inherited-members:
     :members:
 
-Spatial information
--------------------
+sofa.spatial
+------------
 .. automodule:: sofa.spatial
-    :inherited-members:
     :members:

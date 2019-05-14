@@ -18,12 +18,43 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-from .. import _util as util
+"""
+"""
+__version__ = "0.1.0"
 
-class _Base:
-    def __init__(self, dataset):
-        self.dataset = dataset
-        
-    @util.DatasetAttribute()
-    def Type(self): return "DataType"
-    
+__all__=["implemented"]
+
+from . import base
+
+from . import GeneralFIR
+from . import GeneralTF
+from . import SimpleFreeFieldHRIR
+
+from . import GeneralFIRE
+from . import MultiSpeakerBRIR
+from . import SimpleFreeFieldTF
+from . import SimpleFreeFieldSOS
+#from . import SimpleHeadphoneIR
+from . import SingleRoomDRIR
+
+List = {
+    "GeneralFIR" : GeneralFIR.GeneralFIR,
+    "GeneralTF" : GeneralTF.GeneralTF,
+    "SimpleFreeFieldHRIR" : SimpleFreeFieldHRIR.SimpleFreeFieldHRIR,
+
+    "GeneralFIRE" : GeneralFIRE.GeneralFIRE,
+    "MultiSpeakerBRIR" : MultiSpeakerBRIR.MultiSpeakerBRIR,
+    "SimpleFreeFieldTF" : SimpleFreeFieldTF.SimpleFreeFieldTF,
+    "SimpleFreeFieldSOS" : SimpleFreeFieldSOS.SimpleFreeFieldSOS,
+#    "SimpleHeadphoneIR" : SimpleHeadphoneIR.SimpleHeadphoneIR,
+    "SingleRoomDRIR" : SingleRoomDRIR.SingleRoomDRIR
+    }
+
+def implemented():
+    """Returns
+    -------
+    list
+        Names of implemented SOFA conventions
+    """
+    #TODO: versionize convention implementations
+    return list(List.keys())
