@@ -219,9 +219,10 @@ class _VariableBase:
         return self._Matrix != None
 
 class ArrayVariable(_VariableBase):
-    def initialize(dims, data_type="d", fill_value = 0):
+    def initialize(self, dims, data_type="d", fill_value = 0):
         """Create the variable in the underlying netCDF4 dataset"""
-        self.dataset.createVariable(self.name, data_type, dims, fill_value=fill_value)
+        try: self.dataset.createVariable(self.name, data_type, dims, fill_value=fill_value)
+        except Exception as ex: raise Exception("Failed to create variable for {0} of type {1} with fill value {2}, error = {3}".format(self.name, data_type, dims, fill_value, str(ex)))
 
     def dimensions(self):
         """Returns
@@ -339,9 +340,11 @@ class ArrayVariable(_VariableBase):
         return
 
 class ScalarVariable(_VariableBase):
-    def initialize(data_type="d", fill_value = 0):
+    def initialize(self, data_type="d", fill_value = 0):
         """Create the variable in the underlying netCDF4 dataset"""
-        self.dataset.createVariable(self.name, data_type, ("I",), fill_value=fill_value)
+        dims=("I",)
+        try: self.dataset.createVariable(self.name, data_type, dims, fill_value=fill_value)
+        except Exception as ex: raise Exception("Failed to create variable for {0} of type {1} with fill value {2}, error = {3}".format(self.name, data_type, dims, fill_value, str(ex)))
 
     def get_value(self):
         """

@@ -9,13 +9,13 @@ for line in open("src/sofa/__init__.py"):
         break
 
 setup(
-    name="python-sofa",
+    name="sofa",
     version=__version__,
     packages=find_packages(),
     install_requires=[
         'numpy',
+        'scipy>=1.2.0'
         'netcdf4',
-        'enum',
         'datetime'
     ],
     author="Jannika Lossner",

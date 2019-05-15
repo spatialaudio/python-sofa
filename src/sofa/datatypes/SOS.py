@@ -55,7 +55,7 @@ class SOS(_Base):
 
         self.SOS.initialize(dimensions.Definitions.DataValues(self.Type))
         if default_values["SOS"] != 0: self.SOS.set_values(default_values["SOS"])
-        self.SamplingRate.initialize(dimensions.Definitions.DataSamplingRate(self.Type))
+        self.SamplingRate.initialize()
         self.SamplingRate.set_value(default_values["SamplingRate"])
         self.SamplingRate.Units = dimensions.default_units["frequency"]
         self.Delay.initialize(dimensions.Definitions.DataDelay(self.Type, delay_varies))

@@ -54,7 +54,7 @@ class FIR(_Base):
 
         self.IR.initialize(dimensions.Definitions.DataValues(self.Type))
         if default_values["IR"] != 0: self.IR.set_values(default_values["IR"])
-        self.SamplingRate.initialize(dimensions.Definitions.DataSamplingRate(self.Type))
+        self.SamplingRate.initialize()
         self.SamplingRate.set_value(default_values["SamplingRate"])
         self.SamplingRate.Units = dimensions.default_units["frequency"]
         self.Delay.initialize(dimensions.Definitions.DataDelay(self.Type, delay_varies))

@@ -93,7 +93,7 @@ class Coordinates(access.ArrayVariable):
 
     def __init__(self, obj, descriptor):
         self.database = obj.database
-        access.Variable.__init__(self, self.database.dataset, obj.name+descriptor)
+        access.ArrayVariable.__init__(self, self.database.dataset, obj.name+descriptor)
         self.obj_name = obj.name
         self.descriptor = descriptor
 
