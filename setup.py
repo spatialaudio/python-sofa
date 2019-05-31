@@ -11,10 +11,12 @@ for line in open("src/sofa/__init__.py"):
 setup(
     name="sofa",
     version=__version__,
-    packages=find_packages(),
+    packages=find_packages('src'),
+	package_dir={'':'src'},
     install_requires=[
+		'sfs', #for coordinate transformations only
         'numpy',
-        'scipy>=1.2.0'
+        'scipy>=1.2.0',
         'netcdf4',
         'datetime'
     ],
