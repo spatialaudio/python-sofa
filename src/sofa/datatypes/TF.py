@@ -26,14 +26,14 @@ from .. import access
 class TF(_Base):
     @property
     def Real(self): 
-        """:class:`sofa.ArrayVariable` for the real part of the complex spectrum"""
+        """:class:`sofa.access.ArrayVariable` for the real part of the complex spectrum"""
         return access.ArrayVariable(self.database.dataset, "Data.Real")
     def Imag(self): 
-        """:class:`sofa.ArrayVariable` for the imaginary part of the complex spectrum"""
+        """:class:`sofa.access.ArrayVariable` for the imaginary part of the complex spectrum"""
         return access.ArrayVariable(self.database.dataset, "Data.Imag")
     @property
     def N(self): 
-        """:class:`sofa.ArrayVariable` for the frequency values"""
+        """:class:`sofa.access.ArrayVariable` for the frequency values"""
         return access.ArrayVariable(self.database.dataset, "N")
         
     def initialize(self, sample_count, string_length = 0):

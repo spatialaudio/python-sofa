@@ -26,15 +26,15 @@ from .. import access
 class FIR(_Base):
     @property
     def IR(self): 
-        """:class:`sofa.ArrayVariable` for the impulse response"""
+        """:class:`sofa.access.ArrayVariable` for the impulse response"""
         return access.ArrayVariable(self.database.dataset, "Data.IR")
     @property
     def SamplingRate(self): 
-        """:class:`sofa.ScalarVariable` for the sampling rate"""
+        """:class:`sofa.access.ScalarVariable` for the sampling rate"""
         return access.ScalarVariable(self.database.dataset, "Data.SamplingRate")
     @property
     def Delay(self): 
-        """:class:`sofa.ArrayVariable` for the impulse response delay"""
+        """:class:`sofa.access.ArrayVariable` for the impulse response delay"""
         return access.ArrayVariable(self.database.dataset, "Data.Delay")
         
     def initialize(self, sample_count, delay_varies, string_length = 0):

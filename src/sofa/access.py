@@ -126,6 +126,12 @@ class Dimensions:
             print("dimension {0} not initialized".format(dim))
             return None
         return self.dataset.dimensions[dim].size
+		
+    def dump(self):
+        """Prints all dimension sizes"""
+        for dim in self.dataset.dimensions:
+            print("{0}: {1}".format(dim, self.dataset.dimensions[dim].size))
+        return
 
 class Metadata:
 #    """Access the dataset metadata"""
@@ -174,8 +180,14 @@ class Metadata:
         attrs : list
             List of the existing dataset attribute names
         """
-        return self.dataset.ncattrs()
+        return sorted(self.dataset.ncattrs())
 
+    def dump(self):
+        """Prints all metadata attributes"""
+        for attr in self.list_attributes():
+            print("{0}: {1}".format(attr, self.get_attribute(attr)))
+        return
+		
 ########################################################################
 # Variable access
 ########################################################################

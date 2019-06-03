@@ -26,15 +26,15 @@ from .. import access
 class SOS(_Base):
     @property
     def SOS(self): 
-        """:class:`sofa.ArrayVariable` for the second order sections"""
+        """:class:`sofa.access.ArrayVariable` for the second order sections"""
         return access.ArrayVariable(self.database.dataset, "Data.SOS")
     @property
     def SamplingRate(self): 
-        """:class:`sofa.ScalarVariable` for the sampling rate"""
+        """:class:`sofa.access.ScalarVariable` for the sampling rate"""
         return access.ScalarVariable(self.database.dataset, "Data.SamplingRate")
     @property
     def Delay(self): 
-        """:class:`sofa.ArrayVariable` for the impulse response delay"""
+        """:class:`sofa.access.ArrayVariable` for the impulse response delay"""
         return access.ArrayVariable(self.database.dataset, "Data.Delay")
         
 
