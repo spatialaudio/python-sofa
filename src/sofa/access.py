@@ -26,6 +26,26 @@ __all__=["get_values_from_array", "Dimensions", "Metadata", "ArrayVariable", "Sc
 
 import numpy as np
 
+def get_slice_tuple(dimensions, indices=None):
+    if indices == None: return tuple([slice(None) for x in dimensions])
+    if "M" in indices and "I" in dimensions:
+        indices["I"] = 0 if type(indices["M"]) == int else slice(None)
+    return tuple([slice(None) if x not in indices else indices[x] for x in dimensions])
+
+def get_default_dimension_order(dimensions, indices=None):
+    if indices == None: return dimensions
+    if "M" in indices and "I" in dimensions:
+        indices["I"] = 0 if type(indices["M"]) == int else slice(None)
+    return tuple([x for x in dimensions or x not in indices or type(indices[x]) != int])
+
+def get_dimension_order_transposition(original, new):
+    old = original
+    if "M" in new and "I" in old: # replace "I" with "M" if necessary
+        old = list(old)
+        old[old.index("I")] = "M"
+    transposition = [old.index(x) for x in new]
+    return tuple(transposition)
+
 def get_values_from_array(array, dimensions, indices=None, dim_order=None):
     """Extract values of a given range from an array
     
@@ -45,42 +65,14 @@ def get_values_from_array(array, dimensions, indices=None, dim_order=None):
     values : np.ndarray
         Requested array range in regular or desired dimension order, if provided
     """
-    sls = ()
-    range_dims = ()
-    # deal with I and M variability
-    if "I" in dimensions:
-        dimensions = list(dimensions)
-        dimensions[dimensions.index("I")] = "M"
-        dimensions = tuple(dimensions)
-        if indices != None and "M" in indices.keys(): 
-            if type(indices["M"]) == int: indices["M"]=0
-            else: indices["M"]=slice(None)
-
-    if dim_order != None and "I" in dim_order:
-        dim_order = list(dim_order)
-        dim_order[dim_order.index("I")] = "M"
-        dim_order = tuple(dim_order)
-        
-    for d in dimensions:
-        sl = slice(None)
-        if indices != None and d in indices.keys(): sl = indices[d]
-        elif d == "M" and indices != None and "I" in indices.keys(): sl = indices["I"]
-        elif d == "I" and indices != None and "M" in indices.keys(): sl = indices["M"]
-        sls = sls + (sl,)
-        if type(sl) == slice: range_dims = range_dims + (d,)
+    sls = get_slice_tuple(dimensions, indices)
     if dim_order == None: return array[sls]
 
-    do = ()
-    for d in dim_order:
-        i = None
-        if d in range_dims: i = range_dims.index(d)
-        elif d=="I" and "M" in range_dims: i = range_dims.index("M")
-        elif d=="M" and "I" in range_dims: i = range_dims.index("I")
-        else: raise Exception('cannot transpose array: no dimension {0}'.format(d))
-        do = do + (i,)
-    transposed = None
-    try: transposed = np.transpose(array[sls], do)
-    except: raise Exception("dimension mismatch: cannot transpose from {0} to {1} in order {2}".format(range_dims, dim_order, do))
+    old_dim_order = get_default_dimension_order(dimensions, indices)
+    transposition = get_dimension_order_transposition(old_dim_order, dim_order)
+
+    try: return np.transpose(array[sls], transposition)
+    except: raise Exception("dimension mismatch: cannot transpose from {0} to {1} in order {2}".format(old_dim_order, dim_order, do))
     return transposed
 
 
@@ -204,6 +196,7 @@ class _VariableBase:
 #        """
         self.dataset = dataset
         self.name = name
+        self.unit_proxy = None
 
     @property
     def _Matrix(self): 
@@ -215,7 +208,8 @@ class _VariableBase:
         """Units of the values"""
         if not self.exists():
             raise Exception("failed to get Units of {0}, variable not initialized".format(self.name))
-        return self._Matrix.Units
+        if self.unit_proxy == None: return self._Matrix.Units
+        return self.unit_proxy._Matrix.Units
     @Units.setter
     def Units(self, value):
         if not self.exists():

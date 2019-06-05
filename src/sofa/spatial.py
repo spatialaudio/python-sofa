@@ -30,6 +30,11 @@ from scipy.spatial.transform import Rotation ## requires scipy 1.2.0
 from sfs.util import cart2sph
 from sfs.util import sph2cart
 
+def transform(u, rot, x0, invert):
+    if not invert: u-=x0
+    t = rot.apply(u, inverse=invert)
+    if invert: t+=x0
+    return t
 
 class Coordinates(access.ArrayVariable):
     """Specialized :class:`sofa.access.ArrayVariable` for spatial coordinates"""
@@ -37,9 +42,50 @@ class Coordinates(access.ArrayVariable):
         """Enum of valid coordinate systems"""
         Cartesian = "cartesian"
         Spherical = "spherical"
+        
+        class Units:
+            Meter = {"meter", "metre"}
+            Degree = {"degree", "°", "deg"}
+            Radians = {"radians", "rad"}
+            
+        @staticmethod
+        def convert_angle_units(coords, dimensions, old_units, new_units):
+            """
+            Parameters
+            ----------
+            coords : array_like
+                Array of spherical coordinate values
+            dimensions : tuple of str
+                Names of the array dimensions in order, must contain "C"
+            old_units : str
+                Units of the angle values in the array
+            new_units : str
+                Target angle units
+
+            Returns
+            -------
+            new_coords : np.ndarray
+                Array of converted spherical coordinate values in identical dimension order
+            """
+            if dimensions == None: raise Exception("missing dimension order for unit conversion")
+            if new_units == None: return coords
+            if old_units == None: raise Exception("missing original unit for unit conversion")
+
+            print("Attempting conversion from", old_units,"to", new_units)
+            conversion = np.ones_like(coords)
+            
+            if (old_units in Coordinates.System.Units.Degree and new_units in Coordinates.System.Units.Degree) or (old_units in Coordinates.System.Units.Radians and new_units in Coordinates.System.Units.Radians):
+                return coords
+            elif old_units in Coordinates.System.Units.Degree and new_units in Coordinates.System.Units.Radians: 
+                conversion[access.get_slice_tuple(dimensions, {"C":slice(2)})] = np.pi/180
+            elif old_units in Coordinates.System.Units.Radians and new_units in Coordinates.System.Units.Degree: 
+                conversion[access.get_slice_tuple(dimensions, {"C":slice(2)})] = 180/np.pi
+            else: raise Exception("invalid angle unit in conversion from {0} to {1}".format(old_units, new_units))
+
+            return np.multiply(coords, conversion)
 
         @staticmethod
-        def convert(coords, dimensions, old_system, new_system):
+        def convert(coords, dimensions, old_system, new_system, old_angle_unit=None, new_angle_unit=None): #need to take care of degree/radians unit mess.
             """
             Parameters
             ----------
@@ -51,6 +97,10 @@ class Coordinates(access.ArrayVariable):
                 Coordinate system of the values in the array
             new_system : str
                 Target coordinate system
+            old_angle_unit : str, optional
+                Unit of the angular spherical coordinates
+            new_angle_unit : str, optional
+                Target unit of the angular spherical coordinates
 
             Returns
             -------
@@ -58,29 +108,26 @@ class Coordinates(access.ArrayVariable):
                 Array of converted coordinate values in identical dimension order
             """
             if dimensions == None: raise Exception("missing dimension order for coordinate conversion")
-            if type(old_system) != str: old_system = old_system.value
-            if type(new_system) != str: new_system = new_system.value
-            if old_system == new_system: return coords
+            if new_system == None or old_system == new_system:
+                if old_system != Coordinates.System.Spherical: return coords
+                return Coordinates.System.convert_angle_units(coords, dimensions, old_angle_unit, new_angle_unit)
+
+            old = None
             conversion = None
-            if old_system == Coordinates.System.Cartesian.value and new_system == Coordinates.System.Spherical.value: conversion = cart2sph
-            elif old_system == Coordinates.System.Spherical.value and new_system == Coordinates.System.Cartesian.value: conversion = sph2cart
+            if old_system == Coordinates.System.Cartesian and new_system == Coordinates.System.Spherical: 
+                conversion = cart2sph
+                old = coords
+            elif old_system == Coordinates.System.Spherical and new_system == Coordinates.System.Cartesian: 
+                conversion = sph2cart
+                old = Coordinates.System.convert_angle_units(coords, dimensions, old_angle_unit, "radians")
             else: raise Exception("unknown coordinate conversion from {0} to {1}".format(old_system, new_system))
 
             c_axis = dimensions.index("C")
-            sl=()
-            for d in dimensions:
-                sl = sl+(slice(None),)
-    
-            a_sl = list(sl)
-            a_sl[c_axis] = 0
-            a_sl = tuple(a_sl)
-            b_sl = list(sl)
-            b_sl[c_axis] = 1
-            b_sl = tuple(b_sl)
-            c_sl = list(sl)
-            c_sl[c_axis] = 2
-            c_sl = tuple(c_sl)
-            return np.moveaxis(np.asarray(conversion(coords[a_sl],coords[b_sl],coords[c_sl])), 0, c_axis)
+            a, b, c = np.split(old, 3, c_axis)
+            
+            new = np.moveaxis(np.asarray(conversion(a,b,c)), 0, c_axis)
+            if new_system != Coordinates.System.Spherical: return new
+            return Coordinates.System.convert_angle_units(new, dimensions, "radians", new_angle_unit)
 
     class State:
         """Enum of valid coordinate systems"""
@@ -96,13 +143,15 @@ class Coordinates(access.ArrayVariable):
         access.ArrayVariable.__init__(self, self.database.dataset, obj.name+descriptor)
         self.obj_name = obj.name
         self.descriptor = descriptor
+        if descriptor == "Up": self.unit_proxy = obj.View
 
     @property
     def Type(self):
         """Coordinate system of the values"""
         if not self.exists():
             raise Exception("failed to get Type of {0}, variable not initialized".format(self.name))
-        return self._Matrix.Type
+        if self.unit_proxy == None: return self._Matrix.Type
+        return self.unit_proxy._Matrix.Type
     @Type.setter
     def Type(self, value): 
         if not self.exists():
@@ -112,7 +161,23 @@ class Coordinates(access.ArrayVariable):
             return
         self._Matrix.Type = value.value
 
-    def get_global_values(self, indices=None, dim_order=None, system=None):
+    def _get_global_ref_object(self):
+        if self.obj_name == "Receiver": return self.database.Listener
+        if self.obj_name == "Emitter": return self.database.Source
+        return None
+
+    def get_values(self, indices=None, dim_order=None, system=None, angle_unit=None):
+        values = access.ArrayVariable.get_values(self, indices, dim_order)
+        if system == None or system == self.Type:
+            if self.Type != Coordinates.System.Spherical or angle_unit == None: return values
+            system = self.Type
+        old_angle_unit = self.Units.split(",")[0]
+        if angle_unit == None: angle_unit = "degree"
+        return Coordinates.System.convert(values, access.get_default_dim_order(self.dimensions(), indices), 
+                                        self.Type, system,
+                                        old_angle_unit, angle_unit)
+
+    def get_global_values(self, indices=None, dim_order=None, system=None, angle_unit=None):
         """Transform local coordinates (such as Receiver or Emitter) into the global reference system
         
         Parameters
@@ -129,55 +194,9 @@ class Coordinates(access.ArrayVariable):
         global_values : np.ndarray
             Transformed coordinates in original or target coordinate system, if provided
         """
-        if system==None: system=self.Type
-        anchor = None
-        ldim = None
-        if self.obj_name == "Receiver": 
-            anchor = self.database.Listener
-            ldim = "R"
-        if self.obj_name == "Emitter": 
-            anchor = self.database.Source
-            ldim = "E"
-        if anchor == None: 
-            if dim_order == None:
-                dimensions = list(self.dimensions())
-                if "I" in dimensions and "I" not in indices: dimensions[dimensions.index("I")]="M"
-                dim_order = tuple([x for x in dimensions if indices == None or x not in indices or type(indices[x]) != int])
-            return Coordinates.System.convert(self.get_values(indices=indices, dim_order=dim_order), dim_order, self.Type, system)
-        
-        view = np.asarray([[1, 0, 0]])
-        up = np.asarray([[0, 0, 1]])
-        if anchor.View.exists(): 
-            view = anchor.View.get_values()
-            if anchor.View.Type == Coordinates.System.Spherical:
-                view[:,2] = 1 # enforce normal vector length
-                view = Coordinates.System.convert(view, anchor.View.dimensions(), anchor.View.Type, Coordinates.System.Cartesian)
-        if anchor.Up.exists(): 
-            up = anchor.Up.get_values()
-            if anchor.View.Type == Coordinates.System.Spherical:
-                up[:,2] = 1 # enforce normal vector length
-                up = Coordinates.System.convert(up, anchor.Up.dimensions(), anchor.View.Type, Coordinates.System.Cartesian)
+        return self.get_relative_values(self._get_global_ref_object(), indices, dim_order, system, angle_unit, invert=True)
 
-        if len(view)!=len(up):
-            view = np.repeat(view, len(up), axis=0)
-            up = np.repeat(up, len(view), axis=0)
-    
-        y_axis = np.cross(up, view)
-        dcm = np.moveaxis(np.asarray([view, y_axis, up]),0,-1)
-        rotations = Rotation.from_dcm(dcm)
-
-        order = ("M","C")
-        count = self.get_values().shape[self.axis(ldim)]
-        glob = np.empty((count, self.database.Dimensions.C, self.database.Dimensions.M))
-        for c in np.arange(count):
-            g_vals = rotations.apply(Coordinates.System.convert(self.get_values(indices={ldim:c}, dim_order=order), order, self.Type, Coordinates.System.Cartesian))
-            if self.descriptor == "Position": 
-                g_vals = g_vals + Coordinates.System.convert(anchor.Position.get_values(), anchor.Position.dimensions(), anchor.Position.Type, Coordinates.System.Cartesian)
-            glob[c,:,:] = g_vals.T
-
-        return access.get_values_from_array(Coordinates.System.convert(glob,self.dimensions(),Coordinates.System.Cartesian, system), self.dimensions(), indices=indices, dim_order=dim_order)
-
-    def get_relative_values(self, ref_obj, indices=None, dim_order=None, system=None):
+    def get_relative_values(self, ref_object, indices=None, dim_order=None, system=None, angle_unit=None, invert=False):
         """Transform coordinates (such as Receiver or Emitter) into the reference system of a given :class:`sofa.spatial.Object`, aligning the x-axis with View and the z-axis with Up
         
         Parameters
@@ -196,57 +215,42 @@ class Coordinates(access.ArrayVariable):
         relative_values : np.ndarray
             Transformed coordinates in original or target coordinate system, if provided
         """
-        if system==None: system=self.Type
-        anchor = ref_obj
-        ldim = None
-        if self.obj_name == "Receiver": 
-            ldim = "R"
-        if self.obj_name == "Emitter": 
-            ldim = "E"
-        
-        view = np.asarray([[1, 0, 0]])
-        up = np.asarray([[0, 0, 1]])
-        if anchor.View.exists(): 
-            view = anchor.View.get_values()
-            if anchor.View.Type == Coordinates.System.Spherical:
-                view[:,2] = 1 # enforce normal vector length
-                view = Coordinates.System.convert(view, anchor.View.dimensions(), anchor.View.Type, Coordinates.System.Cartesian)
-        if anchor.Up.exists(): 
-            up = anchor.Up.get_values()
-            if anchor.View.Type == Coordinates.System.Spherical:
-                up[:,2] = 1 # enforce normal vector length
-                up = Coordinates.System.convert(up, anchor.Up.dimensions(), anchor.View.Type, Coordinates.System.Cartesian)    
+        if ref_object == None: return self.get_values(indices, dim_order, system, angle_unit)
 
-        if len(view)!=len(up):
-            view = np.repeat(view, len(up), axis=0)
-            up = np.repeat(up, len(view), axis=0)
-    
-        y_axis = np.cross(up, view)
-        dcm = np.moveaxis(np.asarray([view, y_axis, up]),0,-1)
+        if system==None: system=self.Type
+        ldim = dimensions.Definitions.names.get(self.obj_name, None)
+
+        # get rotation of ref_object
+        order = ("M","C")
+        r_pos, r_view, r_up = ref_object.get_pose(indices, order, Coordinates.System.Cartesian, angle_unit)
+        if len(r_view)!=len(r_up):
+            vlen = len(r_view)
+            ulen = len(r_up)
+            r_view = np.repeat(r_view, ulen, axis=0)
+            r_up = np.repeat(r_up, vlen, axis=0)
+        y_axis = np.cross(r_up, r_view)
+        dcm = np.moveaxis(np.asarray([r_view, y_axis, r_up]),0,-1)
         rotations = Rotation.from_dcm(dcm)
 
-        # inverse of local to global
-        order = ("M","C")        
-        loc = None
-        if ldim == None:
-            loc = np.empty((self.database.Dimensions.M, self.database.Dimensions.C))
-            g_vals = self.get_global_values(dim_order=order, system=Coordinates.System.Cartesian)
-            if self.descriptor == "Position": 
-                g_vals = g_vals - Coordinates.System.convert(anchor.Position.get_values(), anchor.Position.dimensions(), anchor.Position.Type, Coordinates.System.Cartesian)
-            l_vals = rotations.apply(g_vals, inverse=True)
-            loc[:,:] = l_vals
-        else:
-            count = self.get_values().shape[self.axis(ldim)]
-            loc = np.empty((count, self.database.Dimensions.C, self.database.Dimensions.M))
-            for c in np.arange(count):
-                g_vals = self.get_global_values(indices={ldim:c}, dim_order=order, system=Coordinates.System.Cartesian)
-                if self.descriptor == "Position": 
-                    g_vals = g_vals - Coordinates.System.convert(anchor.Position.get_values(), anchor.Position.dimensions(), anchor.Position.Type, Coordinates.System.Cartesian)
-                l_vals = rotations.apply(g_vals, inverse=True)
-                loc[c,:,:] = l_vals.T
+        # transform values
+        if ldim != None: order = (ldim,)+order
+        untransformed_values = self.get_values(dim_order=order, system=Coordinates.System.Cartesian) if invert else self.get_global_values(dim_order=order, system=Coordinates.System.Cartesian)
+        transformed_values = None
 
-        return access.get_values_from_array(Coordinates.System.convert(loc,self.dimensions(),Coordinates.System.Cartesian, system), self.dimensions(), indices=indices, dim_order=dim_order)
+        if ldim != None:
+            transformed_values = np.empty(untransformed_values.shape)
+            for c in np.arange(untransformed_values.shape[0]): transformed_values[c] = transform(untransformed_values[c], rotations, r_pos, invert)
+        else: transformed_values = transform(untransformed_values, rotations, r_pos, invert)
 
+        # return in proper system, units and order
+        if system == Coordinates.System.Spherical and angle_unit == None:
+            angle_unit = self.Units.split(",")[0] if self.Type == Coordinates.System.Spherical else "degree"
+
+        if dim_order == None: dim_order = access.get_default_dimension_order(order, indices)
+        return Coordinates.System.convert(access.get_values_from_array(transformed_values, order, indices=indices, dim_order=dim_order),
+                dim_order,
+                Coordinates.System.Cartesian, system,
+                new_angle_unit=angle_unit)
 
     def set_system(self, ctype=None, cunits=None):
         """Set the coordinate Type and Units"""
@@ -342,3 +346,23 @@ class Object:
             self.View.initialize(getattr(dimensions.Definitions, self.name)(info_states.View))
         if info_states.Up != Coordinates.State.Unused: 
             self.Up.initialize(getattr(dimensions.Definitions, self.name)(info_states.Up))
+
+    def get_pose(self, indices=None, dim_order=None, system=None, angle_unit=None):
+        position = np.asarray([[0, 0, 0]])
+        view = np.asarray([[1, 0, 0]])
+        up = np.asarray([[0, 0, 1]])
+
+        if self.name == "Receiver" or self.name == "Emitter":
+            ldim = dimensions.Definitions.names[self.name]
+            position = np.repeat(np.expand_dims(position, -1), self.dataset.dimensions[ldim].size, axis=0)
+            view = np.repeat(np.expand_dims(view, -1), self.dataset.dimensions[ldim].size, axis=0)
+            up = np.repeat(np.expand_dims(up, -1), self.dataset.dimensions[ldim].size, axis=0)
+
+        if self.Position.exists(): position = self.Position.get_values(indices, dim_order, system, angle_unit)
+        else: position = Coordinates.System.convert(position, Coordinates.System.Cartesian, system, angle_unit)
+        if self.View.exists(): view = self.View.get_values(indices, dim_order, system, angle_unit)        
+        else: view = Coordinates.System.convert(view, Coordinates.System.Cartesian, system, angle_unit)
+        if self.Up.exists(): up = self.Up.get_values(indices, dim_order, system, angle_unit)
+        else: up = Coordinates.System.convert(up, Coordinates.System.Cartesian, system, angle_unit)
+
+        return position, view, up
