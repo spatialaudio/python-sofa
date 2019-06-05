@@ -36,13 +36,16 @@ def get_default_dimension_order(dimensions, indices=None):
     if indices == None: return dimensions
     if "M" in indices and "I" in dimensions:
         indices["I"] = 0 if type(indices["M"]) == int else slice(None)
-    return tuple([x for x in dimensions or x not in indices or type(indices[x]) != int])
+    return tuple([x for x in dimensions if x not in indices or type(indices[x]) != int])
 
 def get_dimension_order_transposition(original, new):
     old = original
     if "M" in new and "I" in old: # replace "I" with "M" if necessary
         old = list(old)
         old[old.index("I")] = "M"
+    if "M" in old and "I" in new: # replace "I" with "M" if necessary
+        new = list(new)
+        new[new.index("I")] = "M"
     transposition = [old.index(x) for x in new]
     return tuple(transposition)
 

@@ -71,7 +71,6 @@ class Coordinates(access.ArrayVariable):
             if new_units == None: return coords
             if old_units == None: raise Exception("missing original unit for unit conversion")
 
-            print("Attempting conversion from", old_units,"to", new_units)
             conversion = np.ones_like(coords)
             
             if (old_units in Coordinates.System.Units.Degree and new_units in Coordinates.System.Units.Degree) or (old_units in Coordinates.System.Units.Radians and new_units in Coordinates.System.Units.Radians):
@@ -123,9 +122,13 @@ class Coordinates(access.ArrayVariable):
             else: raise Exception("unknown coordinate conversion from {0} to {1}".format(old_system, new_system))
 
             c_axis = dimensions.index("C")
-            a, b, c = np.split(old, 3, c_axis)
+            #a, b, c = np.split(old, 3, c_axis)
+            a = old[access.get_slice_tuple(dimensions, {"C":0})]
+            b = old[access.get_slice_tuple(dimensions, {"C":1})]
+            c = old[access.get_slice_tuple(dimensions, {"C":2})]
             
             new = np.moveaxis(np.asarray(conversion(a,b,c)), 0, c_axis)
+
             if new_system != Coordinates.System.Spherical: return new
             return Coordinates.System.convert_angle_units(new, dimensions, "radians", new_angle_unit)
 
@@ -173,7 +176,8 @@ class Coordinates(access.ArrayVariable):
             system = self.Type
         old_angle_unit = self.Units.split(",")[0]
         if angle_unit == None: angle_unit = "degree"
-        return Coordinates.System.convert(values, access.get_default_dim_order(self.dimensions(), indices), 
+        if dim_order == None: dim_order = access.get_default_dimension_order(self.dimensions(), indices)
+        return Coordinates.System.convert(values, dim_order, 
                                         self.Type, system,
                                         old_angle_unit, angle_unit)
 
@@ -246,7 +250,7 @@ class Coordinates(access.ArrayVariable):
         if system == Coordinates.System.Spherical and angle_unit == None:
             angle_unit = self.Units.split(",")[0] if self.Type == Coordinates.System.Spherical else "degree"
 
-        if dim_order == None: dim_order = access.get_default_dimension_order(order, indices)
+        if dim_order == None: dim_order = access.get_default_dimension_order(self.dimensions(), indices)
         return Coordinates.System.convert(access.get_values_from_array(transformed_values, order, indices=indices, dim_order=dim_order),
                 dim_order,
                 Coordinates.System.Cartesian, system,
