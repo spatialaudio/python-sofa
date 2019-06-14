@@ -356,17 +356,19 @@ class Object:
         view = np.asarray([[1, 0, 0]])
         up = np.asarray([[0, 0, 1]])
 
+        default_order = ("I","C")
         if self.name == "Receiver" or self.name == "Emitter":
             ldim = dimensions.Definitions.names[self.name]
             position = np.repeat(np.expand_dims(position, -1), self.dataset.dimensions[ldim].size, axis=0)
             view = np.repeat(np.expand_dims(view, -1), self.dataset.dimensions[ldim].size, axis=0)
             up = np.repeat(np.expand_dims(up, -1), self.dataset.dimensions[ldim].size, axis=0)
+            default_order = (ldim,"C","I")
 
         if self.Position.exists(): position = self.Position.get_values(indices, dim_order, system, angle_unit)
-        else: position = Coordinates.System.convert(position, Coordinates.System.Cartesian, system, angle_unit)
+        else: position = Coordinates.System.convert(position, default_order, Coordinates.System.Cartesian, system, angle_unit)
         if self.View.exists(): view = self.View.get_values(indices, dim_order, system, angle_unit)        
-        else: view = Coordinates.System.convert(view, Coordinates.System.Cartesian, system, angle_unit)
+        else: view = Coordinates.System.convert(view, default_order, Coordinates.System.Cartesian, system, angle_unit)
         if self.Up.exists(): up = self.Up.get_values(indices, dim_order, system, angle_unit)
-        else: up = Coordinates.System.convert(up, Coordinates.System.Cartesian, system, angle_unit)
+        else: up = Coordinates.System.convert(up, default_order, Coordinates.System.Cartesian, system, angle_unit)
 
         return position, view, up
