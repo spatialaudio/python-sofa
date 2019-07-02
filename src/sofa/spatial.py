@@ -27,8 +27,64 @@ import numpy as np
 
 # for coordinate transformations
 from scipy.spatial.transform import Rotation ## requires scipy 1.2.0
-from sfs.util import cart2sph
-from sfs.util import sph2cart
+
+def sph2cart(alpha, beta, r):
+    r"""Spherical to cartesian coordinate transform.
+    .. math::
+        x = r \cos \alpha \sin \beta \\
+        y = r \sin \alpha \sin \beta \\
+        z = r \cos \beta
+    with :math:`\alpha \in [0, 2\pi), \beta \in [0, \pi], r \geq 0`
+    Parameters
+    ----------
+    alpha : float or array_like
+            Azimuth angle in radians
+    beta : float or array_like
+            Colatitude angle in radians (with 0 denoting North pole)
+    r : float or array_like
+            Radius
+    Returns
+    -------
+    x : float or `numpy.ndarray`
+        x-component of Cartesian coordinates
+    y : float or `numpy.ndarray`
+        y-component of Cartesian coordinates
+    z : float or `numpy.ndarray`
+        z-component of Cartesian coordinates
+    """
+    x = r * np.cos(alpha) * np.sin(beta)
+    y = r * np.sin(alpha) * np.sin(beta)
+    z = r * np.cos(beta)
+    return x, y, z
+
+def cart2sph(x, y, z):
+    r"""Cartesian to spherical coordinate transform.
+    .. math::
+        \alpha = \arctan \left( \frac{y}{x} \right) \\
+        \beta = \arccos \left( \frac{z}{r} \right) \\
+        r = \sqrt{x^2 + y^2 + z^2}
+    with :math:`\alpha \in [-pi, pi], \beta \in [0, \pi], r \geq 0`
+    Parameters
+    ----------
+    x : float or array_like
+        x-component of Cartesian coordinates
+    y : float or array_like
+        y-component of Cartesian coordinates
+    z : float or array_like
+        z-component of Cartesian coordinates
+    Returns
+    -------
+    alpha : float or `numpy.ndarray`
+            Azimuth angle in radians
+    beta : float or `numpy.ndarray`
+            Colatitude angle in radians (with 0 denoting North pole)
+    r : float or `numpy.ndarray`
+            Radius
+    """
+    r = np.sqrt(x**2 + y**2 + z**2)
+    alpha = np.arctan2(y, x)
+    beta = np.arccos(z / r)
+    return alpha, beta, r
 
 def transform(u, rot, x0, invert):
     if not invert: u-=x0
@@ -44,7 +100,7 @@ class Coordinates(access.ArrayVariable):
         Spherical = "spherical"
         
         class Units:
-            Meter = {"meter", "metre"}
+            Meter = {"meter", "metre", "m"}
             Degree = {"degree", "°", "deg"}
             Radians = {"radians", "rad"}
             
@@ -170,6 +226,24 @@ class Coordinates(access.ArrayVariable):
         return None
 
     def get_values(self, indices=None, dim_order=None, system=None, angle_unit=None):
+        """Gets the coordinates in their original reference system
+        
+        Parameters
+        ----------
+        indices : dict(key:str, value:int or slice), optional
+            Key: dimension name, value: indices to be returned, complete axis assumed if not provided
+        dim_order : tuple of str, optional
+            Desired order of dimensions in the output array
+        system : str, optional
+            Target coordinate system
+        angle_unit : str, optional
+            Unit for spherical angles in the output array
+
+        Returns
+        -------
+        values : np.ndarray
+            Coordinates in the original reference system
+        """
         values = access.ArrayVariable.get_values(self, indices, dim_order)
         if system == None or system == self.Type:
             if self.Type != Coordinates.System.Spherical or angle_unit == None: return values
@@ -192,11 +266,13 @@ class Coordinates(access.ArrayVariable):
             Desired order of dimensions in the output array
         system : str, optional
             Target coordinate system
+        angle_unit : str, optional
+            Unit for spherical angles in the output array
 
         Returns
         -------
         global_values : np.ndarray
-            Transformed coordinates in original or target coordinate system, if provided
+            Transformed coordinates in global reference system
         """
         return self.get_relative_values(self._get_global_ref_object(), indices, dim_order, system, angle_unit, invert=True)
 
@@ -213,11 +289,13 @@ class Coordinates(access.ArrayVariable):
             Desired order of dimensions in the output array
         system : str, optional
             Target coordinate system
+        angle_unit : str, optional
+            Unit for spherical angles in the output array
 
         Returns
         -------
         relative_values : np.ndarray
-            Transformed coordinates in original or target coordinate system, if provided
+            Transformed coordinates in original or provided reference system
         """
         if ref_object == None: return self.get_values(indices, dim_order, system, angle_unit)
 
@@ -352,6 +430,25 @@ class Object:
             self.Up.initialize(getattr(dimensions.Definitions, self.name)(info_states.Up))
 
     def get_pose(self, indices=None, dim_order=None, system=None, angle_unit=None):
+        """ Gets the spatial object coordinates or their defaults if they have not been defined
+
+        Parameters
+        ----------
+        indices : dict(key:str, value:int or slice), optional
+            Key: dimension name, value: indices to be returned, complete axis assumed if not provided
+        dim_order : tuple of str, optional
+            Desired order of dimensions in the output arrays
+        system : str, optional
+            Target coordinate system
+        angle_unit : str, optional
+            Unit for spherical angles in the output arrays
+
+        Returns
+        -------
+        position, view, up : np.ndarray, np.ndarray, np.ndarray
+            Spatial object reference system
+
+        """
         position = np.asarray([[0, 0, 0]])
         view = np.asarray([[1, 0, 0]])
         up = np.asarray([[0, 0, 1]])

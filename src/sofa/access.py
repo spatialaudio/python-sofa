@@ -18,7 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-"""Classes for accessing data in the underlying :class:`netCDF4.Dataset`.
+"""Classes for accessing arrays and data in the underlying :class:`netCDF4.Dataset`.
 """
 __version__='0.1.0'
 

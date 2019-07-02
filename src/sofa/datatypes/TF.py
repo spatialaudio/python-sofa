@@ -28,6 +28,7 @@ class TF(_Base):
     def Real(self): 
         """:class:`sofa.access.ArrayVariable` for the real part of the complex spectrum"""
         return access.ArrayVariable(self.database.dataset, "Data.Real")
+    @property
     def Imag(self): 
         """:class:`sofa.access.ArrayVariable` for the imaginary part of the complex spectrum"""
         return access.ArrayVariable(self.database.dataset, "Data.Imag")

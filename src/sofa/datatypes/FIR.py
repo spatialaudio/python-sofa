@@ -45,7 +45,7 @@ class FIR(_Base):
         sample_count : int
             Number of samples per measurement
         delay_varies : bool
-            Whether the Delay is varies between measurements
+            Whether the Delay varies between measurements
         string_length : int, optional
             Size of the longest data string
         """

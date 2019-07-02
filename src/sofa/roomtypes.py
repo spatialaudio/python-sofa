@@ -26,6 +26,14 @@ __all__ = ["implemented", "FreeField", "Reverberant", "Shoebox"]
 from . import spatial
 from .datatypes import dimensions
 
+def implemented():
+    """Returns
+    -------
+    list
+        Names of implemented SOFA room types
+    """
+    return list(List.keys())
+
 class _Base:
     def __init__(self, database):
         self.database = database
@@ -108,10 +116,4 @@ def get(database):
     print("Unknown RoomType", database.dataset.RoomType)
     return List[types.Reverb.value](database)
 
-def implemented():
-    """Returns
-    -------
-    list
-        Names of implemented SOFA room types
-    """
-    return list(List.keys())
+

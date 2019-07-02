@@ -57,7 +57,7 @@ autoclass_content = 'init'
 autodoc_member_order = 'bysource'
 autodoc_default_flags = ['members', 'undoc-members']
 
-autosummary_generate = ['api']
+autosummary_generate = ['api', 'examples']
 
 napoleon_google_docstring = False
 napoleon_numpy_docstring = True

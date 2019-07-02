@@ -4,7 +4,7 @@
 
 .. toctree::
 
-	examples
+    examples
     api
     version-history
 

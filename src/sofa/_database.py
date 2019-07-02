@@ -84,7 +84,7 @@ class Database:
         mode : str, optional
             File access mode ('r': readonly, 'r+': read/write)
         parallel : bool, optional
-            Whether to open the file with parallel access enabled
+            Whether to open the file with parallel access enabled (requires parallel-enabled netCDF4)
 
         Returns
         -------
