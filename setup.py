@@ -9,7 +9,7 @@ for line in open("src/sofa/__init__.py"):
         break
 
 setup(
-    name="sofa",
+    name="python-sofa",
     version=__version__,
     packages=find_packages('src'),
 	package_dir={'':'src'},
