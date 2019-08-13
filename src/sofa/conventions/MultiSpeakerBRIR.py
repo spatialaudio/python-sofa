@@ -37,7 +37,7 @@ class MultiSpeakerBRIR(_Base):
 
         self.conditions["must have 2 Receivers"] = lambda name, info_states, count: name != "Receiver" or count == 2
         self.conditions["must have Listener Up and View)"] = lambda name, info_states, count: name != "Listener" or (not spatial.Coordinates.State.is_used(info_states.Up))
-        self.conditions["must have both Emitter View and Up or neither"] = lambda name, info_states, count: name != "Emitter" or (spatial.Coordinates.State.is_used(info_states.View) == data.spatial.Coordinates.State.is_used(info_states.Up))
+        self.conditions["must have both Emitter View and Up or neither"] = lambda name, info_states, count: name != "Emitter" or (spatial.Coordinates.State.is_used(info_states.View) == spatial.Coordinates.State.is_used(info_states.Up))
 
     def add_metadata(self, dataset):
         _Base.add_general_defaults(dataset)
