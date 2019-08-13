@@ -26,17 +26,25 @@ __all__=["get_values_from_array", "Dimensions", "Metadata", "ArrayVariable", "Sc
 
 import numpy as np
 
+def filled_if_masked(array):
+    if type(array) is np.ma.MaskedArray: return array.filled()
+    return array
+
+def is_integer(val):
+    return np.issubdtype(type(val), np.integer)
+
 def get_slice_tuple(dimensions, indices=None):
     if indices == None: return tuple([slice(None) for x in dimensions])
     if "M" in indices and "I" in dimensions:
-        indices["I"] = 0 if type(indices["M"]) == int else slice(None)
+        indices["I"] = 0 if is_integer(indices["M"]) else slice(None)
     return tuple([slice(None) if x not in indices else indices[x] for x in dimensions])
 
 def get_default_dimension_order(dimensions, indices=None):
     if indices == None: return dimensions
     if "M" in indices and "I" in dimensions:
-        indices["I"] = 0 if type(indices["M"]) == int else slice(None)
-    return tuple([x for x in dimensions if x not in indices or type(indices[x]) != int])
+        indices["I"] = 0 if is_integer(indices["M"]) else slice(None)
+    dim_order = tuple([x for x in dimensions if x not in indices or not is_integer(indices[x])])
+    return dim_order
 
 def get_dimension_order_transposition(original, new):
     old = original
@@ -69,13 +77,13 @@ def get_values_from_array(array, dimensions, indices=None, dim_order=None):
         Requested array range in regular or desired dimension order, if provided
     """
     sls = get_slice_tuple(dimensions, indices)
-    if dim_order == None: return array[sls]
+    if dim_order == None: return filled_if_masked(array[sls])
 
     old_dim_order = get_default_dimension_order(dimensions, indices)
     transposition = get_dimension_order_transposition(old_dim_order, dim_order)
 
-    try: return np.transpose(array[sls], transposition)
-    except: raise Exception("dimension mismatch: cannot transpose from {0} to {1} in order {2}".format(old_dim_order, dim_order, do))
+    try: return filled_if_masked(np.transpose(array[sls], transposition))
+    except Exception as e: raise Exception("dimension mismatch: cannot transpose from {0} to {1} in order {2}, error {3}".format(old_dim_order, dim_order, transposition, e))
     return transposed
 
 

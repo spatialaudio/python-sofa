@@ -89,7 +89,7 @@ def cart2sph(x, y, z):
 def transform(u, rot, x0, invert):
     if not invert: u-=x0
     t = rot.apply(u, inverse=invert)
-    if invert: t+=x0
+    if invert: t = t + x0
     return t
 
 class Coordinates(access.ArrayVariable):
@@ -128,13 +128,14 @@ class Coordinates(access.ArrayVariable):
             if old_units == None: raise Exception("missing original unit for unit conversion")
 
             conversion = np.ones_like(coords)
+            indices = access.get_slice_tuple(dimensions, {"C":slice(2)})
             
             if (old_units in Coordinates.System.Units.Degree and new_units in Coordinates.System.Units.Degree) or (old_units in Coordinates.System.Units.Radians and new_units in Coordinates.System.Units.Radians):
                 return coords
             elif old_units in Coordinates.System.Units.Degree and new_units in Coordinates.System.Units.Radians: 
-                conversion[access.get_slice_tuple(dimensions, {"C":slice(2)})] = np.pi/180
+                conversion[indices] = np.pi/180
             elif old_units in Coordinates.System.Units.Radians and new_units in Coordinates.System.Units.Degree: 
-                conversion[access.get_slice_tuple(dimensions, {"C":slice(2)})] = 180/np.pi
+                conversion[indices] = 180/np.pi
             else: raise Exception("invalid angle unit in conversion from {0} to {1}".format(old_units, new_units))
 
             return np.multiply(coords, conversion)
@@ -320,7 +321,8 @@ class Coordinates(access.ArrayVariable):
         transformed_values = None
 
         if ldim != None:
-            transformed_values = np.empty(untransformed_values.shape)
+            shape = tuple(np.max(np.asarray([np.asarray(untransformed_values.shape)[1:], np.asarray(r_pos.shape)]), axis=0))
+            transformed_values = np.empty((untransformed_values.shape[0],)+shape)
             for c in np.arange(untransformed_values.shape[0]): transformed_values[c] = transform(untransformed_values[c], rotations, r_pos, invert)
         else: transformed_values = transform(untransformed_values, rotations, r_pos, invert)
 
