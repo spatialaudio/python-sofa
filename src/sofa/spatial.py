@@ -52,6 +52,8 @@ def sph2cart(alpha, beta, r):
     z : float or `numpy.ndarray`
         z-component of Cartesian coordinates
     """
+    r = np.where(r != 0, r, 1) # compensate missing radius entries in various databases
+
     x = r * np.cos(alpha) * np.sin(beta)
     y = r * np.sin(alpha) * np.sin(beta)
     z = r * np.cos(beta)
@@ -83,7 +85,7 @@ def cart2sph(x, y, z):
     """
     r = np.sqrt(x**2 + y**2 + z**2)
     alpha = np.arctan2(y, x)
-    beta = np.arccos(z / r)
+    beta = np.arccos(z / np.where(r != 0, r, 1))
     return alpha, beta, r
 
 def transform(u, rot, x0, invert):
@@ -305,7 +307,7 @@ class Coordinates(access.ArrayVariable):
 
         # get rotation of ref_object
         order = ("M","C")
-        r_pos, r_view, r_up = ref_object.get_pose(indices, order, Coordinates.System.Cartesian, angle_unit)
+        r_pos, r_view, r_up = ref_object.get_pose(indices, order, Coordinates.System.Cartesian, "rad")
         if len(r_view)!=len(r_up):
             vlen = len(r_view)
             ulen = len(r_up)
@@ -321,7 +323,7 @@ class Coordinates(access.ArrayVariable):
         transformed_values = None
 
         if ldim != None:
-            shape = tuple(np.max(np.asarray([np.asarray(untransformed_values.shape)[1:], np.asarray(r_pos.shape)]), axis=0))
+            shape = tuple(np.max(np.asarray([np.asarray(untransformed_values.shape)[1:], np.asarray(r_pos.shape), np.asarray(r_view.shape), np.asarray(r_up.shape)]), axis=0))
             transformed_values = np.empty((untransformed_values.shape[0],)+shape)
             for c in np.arange(untransformed_values.shape[0]): transformed_values[c] = transform(untransformed_values[c], rotations, r_pos, invert)
         else: transformed_values = transform(untransformed_values, rotations, r_pos, invert)
