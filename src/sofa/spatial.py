@@ -52,8 +52,6 @@ def sph2cart(alpha, beta, r):
     z : float or `numpy.ndarray`
         z-component of Cartesian coordinates
     """
-    r = np.where(r != 0, r, 1) # compensate missing radius entries in various databases
-
     x = r * np.cos(alpha) * np.sin(beta)
     y = r * np.sin(alpha) * np.sin(beta)
     z = r * np.cos(beta)
@@ -89,8 +87,8 @@ def cart2sph(x, y, z):
     return alpha, beta, r
 
 def transform(u, rot, x0, invert):
-    if not invert: u-=x0
-    t = rot.apply(u, inverse=invert)
+    if not invert: u = u-x0
+    t = rot.apply(u, inverse= not invert)
     if invert: t = t + x0
     return t
 
@@ -277,9 +275,9 @@ class Coordinates(access.ArrayVariable):
         global_values : np.ndarray
             Transformed coordinates in global reference system
         """
-        return self.get_relative_values(self._get_global_ref_object(), indices, dim_order, system, angle_unit, invert=True)
+        return self.get_relative_values(None, indices, dim_order, system, angle_unit)
 
-    def get_relative_values(self, ref_object, indices=None, dim_order=None, system=None, angle_unit=None, invert=False):
+    def get_relative_values(self, ref_object, indices=None, dim_order=None, system=None, angle_unit=None):
         """Transform coordinates (such as Receiver or Emitter) into the reference system of a given :class:`sofa.spatial.Object`, aligning the x-axis with View and the z-axis with Up
         
         Parameters
@@ -300,39 +298,31 @@ class Coordinates(access.ArrayVariable):
         relative_values : np.ndarray
             Transformed coordinates in original or provided reference system
         """
-        if ref_object == None: return self.get_values(indices, dim_order, system, angle_unit)
-
-        if system==None: system=self.Type
+        if system is None: system=self.Type
         ldim = dimensions.Definitions.names.get(self.obj_name, None)
-
-        # get rotation of ref_object
-        order = ("M","C")
-        r_pos, r_view, r_up = ref_object.get_pose(indices, order, Coordinates.System.Cartesian, "rad")
-        if len(r_view)!=len(r_up):
-            vlen = len(r_view)
-            ulen = len(r_up)
-            r_view = np.repeat(r_view, ulen, axis=0)
-            r_up = np.repeat(r_up, vlen, axis=0)
-        y_axis = np.cross(r_up, r_view)
-        dcm = np.moveaxis(np.asarray([r_view, y_axis, r_up]),0,-1)
-        rotations = Rotation.from_dcm(dcm)
+        
+        # get transforms
+        anchor_transform, at_order = _get_object_transform(self._get_global_ref_object())
+        ref_transform, rt_order = _get_object_transform(ref_object)        
 
         # transform values
-        if ldim != None: order = (ldim,)+order
-        untransformed_values = self.get_values(dim_order=order, system=Coordinates.System.Cartesian) if invert else self.get_global_values(dim_order=order, system=Coordinates.System.Cartesian)
-        transformed_values = None
-
-        if ldim != None:
-            shape = tuple(np.max(np.asarray([np.asarray(untransformed_values.shape)[1:], np.asarray(r_pos.shape), np.asarray(r_view.shape), np.asarray(r_up.shape)]), axis=0))
-            transformed_values = np.empty((untransformed_values.shape[0],)+shape)
-            for c in np.arange(untransformed_values.shape[0]): transformed_values[c] = transform(untransformed_values[c], rotations, r_pos, invert)
-        else: transformed_values = transform(untransformed_values, rotations, r_pos, invert)
+        if ldim is None:
+            original_values = self.get_values(dim_order=at_order, system=Coordinates.System.Cartesian)
+            transformed_values = ref_transform(anchor_transform(original_values, invert=True))
+            order = rt_order
+        else:
+            original_values_stack = self.get_values(dim_order=(ldim,)+at_order, system=Coordinates.System.Cartesian)
+            transformed_values = np.asarray([ref_transform(anchor_transform(original_values, invert=True)) for original_values in original_values_stack])
+            order = (ldim,)+rt_order
 
         # return in proper system, units and order
         if system == Coordinates.System.Spherical and angle_unit == None:
             angle_unit = self.Units.split(",")[0] if self.Type == Coordinates.System.Spherical else "degree"
 
-        if dim_order == None: dim_order = access.get_default_dimension_order(self.dimensions(), indices)
+        default_dimensions = self.dimensions()
+        if len(rt_order)>2 : default_dimensions = (rt_order[0],)+default_dimensions
+
+        if dim_order == None: dim_order = access.get_default_dimension_order(default_dimensions, indices)
         return Coordinates.System.convert(access.get_values_from_array(transformed_values, order, indices=indices, dim_order=dim_order),
                 dim_order,
                 Coordinates.System.Cartesian, system,
@@ -434,7 +424,7 @@ class Object:
             self.Up.initialize(getattr(dimensions.Definitions, self.name)(info_states.Up))
 
     def get_pose(self, indices=None, dim_order=None, system=None, angle_unit=None):
-        """ Gets the spatial object coordinates or their defaults if they have not been defined
+        """ Gets the spatial object coordinates or their defaults if they have not been defined. Relative spatial objects return their global pose, or their reference object's pose values if theirs are undefined.
 
         Parameters
         ----------
@@ -453,23 +443,76 @@ class Object:
             Spatial object reference system
 
         """
+        
+        if angle_unit is None: angle_unit = "rad"
+        anchor = self.Position._get_global_ref_object()
+        if anchor is None: # this is an object in the global coordinate system
+            default_order = ("I","C")
+            position = np.asarray([[0, 0, 0]])
+            view = np.asarray([[1, 0, 0]])
+            up = np.asarray([[0, 0, 1]])
+
+        else: # this is an object defined relative to another
+            ldim = dimensions.Definitions.names[self.name]
+            lcount = self.database.Dimensions._dim_size(ldim)
+            
+            anchor_order = ("I", "C")
+            default_order = (ldim,) + anchor_order
+            if dim_order is None: dim_order = access.get_default_dimension_order(self.Position.dimensions(), indices)
+
+            anchor_position, anchor_view, anchor_up = anchor.get_pose(indices=indices, dim_order=anchor_order, system=Coordinates.System.Cartesian)
+            position = np.repeat(np.expand_dims(anchor_position, 0), lcount, axis=0)
+            view = np.repeat(np.expand_dims(anchor_view, 0), lcount, axis=0)
+            up = np.repeat(np.expand_dims(anchor_up, 0), lcount, axis=0)
+
+        # get existing values or use defaults
+        if self.Position.exists(): position = self.Position.get_global_values(indices, dim_order, system, angle_unit)
+        else: position = access.get_values_from_array(
+                Coordinates.System.convert(position, default_order, Coordinates.System.Cartesian, system, angle_unit, angle_unit),
+                default_order, dim_order=dim_order)
+
+        if self.View.exists(): view = self.View.get_global_values(indices, dim_order, system, angle_unit)        
+        else: view = access.get_values_from_array(
+                Coordinates.System.convert(view, default_order, Coordinates.System.Cartesian, system, angle_unit, angle_unit),
+                default_order, dim_order=dim_order)
+
+        if self.Up.exists(): up = self.Up.get_global_values(indices, dim_order, system, angle_unit)
+        else: up = access.get_values_from_array(
+                Coordinates.System.convert(up, default_order, Coordinates.System.Cartesian, system, angle_unit, angle_unit),
+                default_order, dim_order=dim_order)
+
+        return position, view, up
+
+def _rotation_from_view_up(view, up):
+    if len(view)!=len(up):
+        vlen = len(view)
+        ulen = len(up)
+        view = np.repeat(view, ulen, axis=0)
+        up = np.repeat(up, vlen, axis=0)
+    y_axis = np.cross(up, view)
+    return Rotation.from_dcm(np.moveaxis(np.asarray([view, y_axis, up]),0,-1))
+
+def _get_object_transform(ref_object):
+    order = ("M","C")
+    if ref_object is None:
+        # global coordinate system
         position = np.asarray([[0, 0, 0]])
         view = np.asarray([[1, 0, 0]])
         up = np.asarray([[0, 0, 1]])
+    else:
+        if ref_object.name == "Receiver" or ref_object.name == "Emitter":
+            ldim = dimensions.Definitions.names[ref_object.name]
+            if ldim not in order:
+                order = (ldim,) + order
+        position, view, up = ref_object.get_pose(dim_order=order, system=Coordinates.System.Cartesian)
+    if np.size(position.shape)<3: 
+        def apply_transform(values, invert=False):
+            rotation = _rotation_from_view_up(view, up)
+            return transform(values, rotation, position, invert=invert)
+        return apply_transform, order
 
-        default_order = ("I","C")
-        if self.name == "Receiver" or self.name == "Emitter":
-            ldim = dimensions.Definitions.names[self.name]
-            position = np.repeat(np.expand_dims(position, -1), self.dataset.dimensions[ldim].size, axis=0)
-            view = np.repeat(np.expand_dims(view, -1), self.dataset.dimensions[ldim].size, axis=0)
-            up = np.repeat(np.expand_dims(up, -1), self.dataset.dimensions[ldim].size, axis=0)
-            default_order = (ldim,"C","I")
+    def apply_transform(values, invert=False):
+        rotations = [_rotation_from_view_up(v, u) for v,u in zip(view, up)]
+        return np.asarray([transform(values, rot, pos, invert=invert) for rot,pos in zip(rotations, position)])
+    return apply_transform, order
 
-        if self.Position.exists(): position = self.Position.get_values(indices, dim_order, system, angle_unit)
-        else: position = Coordinates.System.convert(position, default_order, Coordinates.System.Cartesian, system, angle_unit)
-        if self.View.exists(): view = self.View.get_values(indices, dim_order, system, angle_unit)        
-        else: view = Coordinates.System.convert(view, default_order, Coordinates.System.Cartesian, system, angle_unit)
-        if self.Up.exists(): up = self.Up.get_values(indices, dim_order, system, angle_unit)
-        else: up = Coordinates.System.convert(up, default_order, Coordinates.System.Cartesian, system, angle_unit)
-
-        return position, view, up

@@ -20,7 +20,7 @@
 
 """Python SOFA API for reading, writing and creating .sofa files.
 """
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 
 __all__=["access", "conventions", "datatypes", "roomtypes", "spatial", "Database"]
 
