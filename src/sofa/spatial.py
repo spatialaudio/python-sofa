@@ -283,7 +283,7 @@ class Coordinates(access.ArrayVariable):
         Parameters
         ----------
         ref_obj : :class:`sofa.spatial.Object`
-            Spatial object providing the reference system
+            Spatial object providing the reference system, None for 
         indices : dict(key:str, value:int or slice), optional
             Key: dimension name, value: indices to be returned, complete axis assumed if not provided
         dim_order : tuple of str, optional
@@ -323,10 +323,22 @@ class Coordinates(access.ArrayVariable):
         if len(rt_order)>2 : default_dimensions = (rt_order[0],)+default_dimensions
 
         if dim_order == None: dim_order = access.get_default_dimension_order(default_dimensions, indices)
-        return Coordinates.System.convert(access.get_values_from_array(transformed_values, order, indices=indices, dim_order=dim_order),
-                dim_order,
-                Coordinates.System.Cartesian, system,
-                new_angle_unit=angle_unit)
+        
+        if indices is None or "C" not in indices:
+            return Coordinates.System.convert(access.get_values_from_array(transformed_values, order, 
+                        indices=indices, dim_order=dim_order),
+                    dim_order,
+                    Coordinates.System.Cartesian, system,
+                    new_angle_unit=angle_unit)
+        else: # only apply "C" index after coordinate system conversion!
+            return Coordinates.System.convert(access.get_values_from_array(transformed_values, order, 
+                        indices={i:indices[i] for i in indices if i!="C"}, dim_order=("C",)+dim_order),
+                    ("C",)+dim_order,
+                    Coordinates.System.Cartesian, system,
+                    new_angle_unit=angle_unit)[indices["C"]]
+                    
+                    
+        
 
     def set_system(self, ctype=None, cunits=None):
         """Set the coordinate Type and Units"""
