@@ -34,13 +34,13 @@ def sph2cart(alpha, beta, r):
         x = r \cos \alpha \sin \beta \\
         y = r \sin \alpha \sin \beta \\
         z = r \cos \beta
-    with :math:`\alpha \in [0, 2\pi), \beta \in [0, \pi], r \geq 0`
+    with :math:`\alpha \in [0, 2\pi), \beta \in [-\frac{\pi}{2}, \frac{\pi}{2}], r \geq 0`
     Parameters
     ----------
     alpha : float or array_like
             Azimuth angle in radians
     beta : float or array_like
-            Colatitude angle in radians (with 0 denoting North pole)
+            Elevation angle in radians (with 0 denoting azimuthal plane)
     r : float or array_like
             Radius
     Returns
@@ -52,9 +52,9 @@ def sph2cart(alpha, beta, r):
     z : float or `numpy.ndarray`
         z-component of Cartesian coordinates
     """
-    x = r * np.cos(alpha) * np.sin(beta)
-    y = r * np.sin(alpha) * np.sin(beta)
-    z = r * np.cos(beta)
+    x = r * np.cos(alpha) * np.cos(beta)
+    y = r * np.sin(alpha) * np.cos(beta)
+    z = r * np.sin(beta)
     return x, y, z
 
 def cart2sph(x, y, z):
@@ -63,7 +63,7 @@ def cart2sph(x, y, z):
         \alpha = \arctan \left( \frac{y}{x} \right) \\
         \beta = \arccos \left( \frac{z}{r} \right) \\
         r = \sqrt{x^2 + y^2 + z^2}
-    with :math:`\alpha \in [-pi, pi], \beta \in [0, \pi], r \geq 0`
+    with :math:`\alpha \in [-pi, pi], \beta \in [-\frac{\pi}{2}, \frac{\pi}{2}], r \geq 0`
     Parameters
     ----------
     x : float or array_like
@@ -77,13 +77,13 @@ def cart2sph(x, y, z):
     alpha : float or `numpy.ndarray`
             Azimuth angle in radians
     beta : float or `numpy.ndarray`
-            Colatitude angle in radians (with 0 denoting North pole)
+            Elevation angle in radians (with 0 denoting azimuthal plane)
     r : float or `numpy.ndarray`
             Radius
     """
     r = np.sqrt(x**2 + y**2 + z**2)
     alpha = np.arctan2(y, x)
-    beta = np.arccos(z / np.where(r != 0, r, 1))
+    beta = np.arcsin(z / np.where(r != 0, r, 1))
     return alpha, beta, r
 
 def transform(u, rot, x0, invert):
