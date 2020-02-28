@@ -33,11 +33,13 @@ from enum import Enum
 import netCDF4 as ncdf
 from datetime import datetime
 
-class Database:  
+class Database(access.ProxyObject):  
     """Read and write NETCDF4 files following the SOFA specifications and conventions"""
 
     def __init__(self):
-        self.dataset = None
+        super().__init__(self, "")
+        
+        self._dataset = None
         self._convention = None
 
         self._Dimensions = None
@@ -47,6 +49,8 @@ class Database:
         self._Emitter = None
 
         self._Metadata = None
+        self._Variables = None
+        
 
     @staticmethod
     def create(path, convention, measurements):
@@ -96,10 +100,10 @@ class Database:
         sofa = Database()
         sofa.dataset = ncdf.Dataset(path, mode=mode, parallel=parallel)
         if sofa.dataset.SOFAConventions in conventions.implemented():
-            sofa.convention = conventions.List[sofa.dataset.SOFAConventions]()
+            sofa._convention = conventions.List[sofa.dataset.SOFAConventions]()
         else:
             default = "General"+sofa.dataset.DataType
-            sofa.convention = conventions.List[default]()
+            sofa._convention = conventions.List[default]()
         return sofa
 
     def close(self):
@@ -109,8 +113,8 @@ class Database:
         except: pass #avoid errors when closing files in read mode
         if self.dataset != None: self.dataset.close()
 
-        self.dataset = None
-        self.convention = None
+        self._dataset = None
+        self._convention = None
 
         self._Dimensions = None
         self._Listener = None
@@ -128,7 +132,7 @@ class Database:
         self.DateModified = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         self.dataset.sync()
             
-    ## data
+    ## data    
     @property
     def Data(self): 
         """DataType specific access for the measurement data, see :mod:`sofa.datatypes`"""
@@ -195,4 +199,15 @@ class Database:
             return None
         if self._Metadata is None: self._Metadata = access.Metadata(self.dataset)
         return self._Metadata
+
+
+    ## direct access to variables
+    @property
+    def Variables(self):
+        """:class:`sofa.access.DatasetVariables` for direct access to database variables"""
+        if self.dataset is None: 
+            print("No dataset open!")
+            return None
+        if self._Variables is None: self._Variables = access.DatasetVariables(self.dataset)
+        return self._Variables
 

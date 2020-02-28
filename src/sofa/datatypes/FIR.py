@@ -24,40 +24,46 @@ from . import dimensions
 from .. import access
 
 class FIR(_Base):
-    @property
-    def IR(self): 
-        """:class:`sofa.access.ArrayVariable` for the impulse response"""
-        return access.ArrayVariable(self.database.dataset, "Data.IR")
-    @property
-    def SamplingRate(self): 
-        """:class:`sofa.access.ScalarVariable` for the sampling rate"""
-        return access.ScalarVariable(self.database.dataset, "Data.SamplingRate")
-    @property
-    def Delay(self): 
-        """:class:`sofa.access.ArrayVariable` for the impulse response delay"""
-        return access.ArrayVariable(self.database.dataset, "Data.Delay")
+#    @property
+#    def IR(self): 
+#        """:class:`sofa.access.Variable` for the impulse response"""
+#        return access.Variable(self.database.dataset, "Data.IR")
+#    @property
+#    def SamplingRate(self): 
+#        """:class:`sofa.access.Variable` for the sampling rate"""
+#        return access.Variable(self.database.dataset, "Data.SamplingRate")
+#    @property
+#    def Delay(self): 
+#        """:class:`sofa.access.Variable` for the impulse response delay"""
+#        return access.Variable(self.database.dataset, "Data.Delay")
         
-    def initialize(self, sample_count, delay_varies, string_length = 0):
+    @staticmethod
+    def optional_variance_names():
+        return ["SamplingRate", "Delay"]
+        
+    def initialize(self, sample_count, variances=[], string_length = 0):
         """Create the necessary variables and attributes
         
         Parameters
         ----------
         sample_count : int
             Number of samples per measurement
-        delay_varies : bool
-            Whether the Delay varies between measurements
+        variances : list
+            Names of the variables that vary along dimension M
         string_length : int, optional
             Size of the longest data string
         """
-        _Base._initialize_dimensions(self, sample_count, string_length = string_length)
-        default_values = self.database._convention.default_data
-
-        self.IR.initialize(dimensions.Definitions.DataValues(self.Type))
-        if default_values["IR"] != 0: self.IR.set_values(default_values["IR"])
-        self.SamplingRate.initialize()
-        self.SamplingRate.set_value(default_values["SamplingRate"])
+        super()._initialize_dimensions(sample_count, string_length = string_length)
+        default_values = self.database._convention.default_data        
+        
+        self.create_variable("IR", dimensions.Definitions.DataValues(self.Type))
+        if default_values["IR"] != 0: self.IR = default_values["IR"]
+        
+        self.create_variable("SamplingRate", dimensions.Definitions.DataSamplingRate(self.Type, varies="SamplingRate" in variances))
+        self.SamplingRate = default_values["SamplingRate"]
         self.SamplingRate.Units = dimensions.default_units["frequency"]
-        self.Delay.initialize(dimensions.Definitions.DataDelay(self.Type, delay_varies))
-        if default_values["Delay"] != 0: self.Delay.set_values(default_values["Delay"])
+        
+        self.create_variable("Delay", dimensions.Definitions.DataDelay(self.Type, varies="Delay" in variances))
+        if default_values["Delay"] != 0: self.Delay = default_values["Delay"]
         return    
 

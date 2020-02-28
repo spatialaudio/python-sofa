@@ -41,7 +41,7 @@ List = {
 }
     
 def get(database):
-    if database.dataset.DataType in List.keys(): return List[database.dataset.DataType](database)
+    if database.DataType in List.keys(): return List[database.dataset.DataType](database)
     print("Unknown DataType", file.DataType, ", returning FIR instead")
     return List["FIR"](database)
 

@@ -23,6 +23,7 @@
 __version__ = "0.1.0"
 __all__ = ["implemented", "FreeField", "Reverberant", "Shoebox"]
 
+from . import access
 from . import spatial
 from .datatypes import dimensions
 
@@ -34,10 +35,9 @@ def implemented():
     """
     return list(List.keys())
 
-class _Base:
+class _Base(access.ProxyObject):
     def __init__(self, database):
-        self.database = database
-        self.name="Room"
+        super().__init__(database, "Room")
             
     @property
     def Type(self): 
@@ -58,26 +58,12 @@ class FreeField(_Base):
         
     
 class Reverberant(_Base):    
-    @property
-    def Description(self): 
-        """Informal description of the room"""
-        return self.database.dataset.RoomDescription
-    @Description.setter
-    def Description(self, value): self.database.dataset.RoomDescription = value 
-    
     def initialize(self):
         """Create the necessary variables and attributes"""
-        self.Description = ""
+        self.create_attribute("Description")
         return
-    
+        
 class Shoebox(_Base):
-    @property
-    def Description(self):
-        """Informal description of the room"""
-        return self.database.dataset.RoomDescription
-    @Description.setter
-    def Description(self, value): self.database.dataset.RoomDescription = value 
-
     @property
     def CornerA(self): 
         """:class:`sofa.spatial.Coordinates` for the first corner of the shoebox"""
@@ -95,7 +81,7 @@ class Shoebox(_Base):
         corner_a : :class:`sofa.spatial.Coordinates.State`
         corner_b : :class:`sofa.spatial.Coordinates.State`
         """
-        self.Description = ""
+        self.create_attribute("Description")
         self.CornerA.initialize(dimensions.Definitions.RoomCorner(corner_a==spatial.Coordinates.State.Varying))
         self.CornerA.set_system(ctype="cartesian", cunits="meter")
             

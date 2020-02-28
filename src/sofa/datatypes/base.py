@@ -18,18 +18,20 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-class _Base:
+from .. import access
+
+class _Base(access.ProxyObject):
     def __init__(self, database):
-        self.database = database
+        super().__init__(database, "Data.")
         
     @property
     def Type(self): 
         """SOFA data type"""
-        return self.database.dataset.DataType
+        return self.database.Metadata.get_attribute("DataType")
     @Type.setter
-    def Type(self, value): self.database.dataset.DataType = value
+    def Type(self, value): self.database.Metadata.get_attribute("DataType", value)
     
     def _initialize_dimensions(self, sample_count, string_length = 0):
-        if string_length>0: self.database.dataset.createDimension("S", string_length)
-        self.database.dataset.createDimension("N", sample_count)
+        if string_length>0: self.database.Dimensions.create_dimension("S", string_length)
+        self.database.Dimensions.create_dimension("N", sample_count)
         

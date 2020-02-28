@@ -22,7 +22,7 @@
 """
 __version__='0.1.0'
 
-__all__=["get_values_from_array", "Dimensions", "Metadata", "ArrayVariable", "ScalarVariable"]
+__all__=["get_values_from_array", "Dimensions", "Metadata", "Variable", "ScalarVariable"]
 
 import numpy as np
 
@@ -129,6 +129,12 @@ class Dimensions:
             print("dimension {0} not initialized".format(dim))
             return None
         return self.dataset.dimensions[dim].size
+        
+    def create_dimension(self, dim, size):
+        self.dataset.createDimension(dim, size)
+		
+    def list_dimensions(self):
+        return self.dataset.dimensions.keys()
 		
     def dump(self):
         """Prints all dimension sizes"""
@@ -174,6 +180,10 @@ class Metadata:
         value : str, optional
             New value of the attribute
         """
+        if name in self.list_attributes():
+            print(name, "already in .SOFA dataset, setting value instead")
+            self.set_attribute(name, value)
+            return
         self.dataset.NewSOFAAttribute = value
         self.dataset.renameAttribute("NewSOFAAttribute", name)
 
@@ -235,7 +245,7 @@ class _VariableBase:
         """
         return self._Matrix != None
 
-class ArrayVariable(_VariableBase):
+class Variable(_VariableBase):
     def initialize(self, dims, data_type="d", fill_value = 0):
         """Create the variable in the underlying netCDF4 dataset"""
         try: self.dataset.createVariable(self.name, data_type, dims, fill_value=fill_value)
@@ -355,36 +365,157 @@ class ArrayVariable(_VariableBase):
         # assign
         self._Matrix[sls] = new_values
         return
+    
+class DatasetVariables:
+#    """Direct access the dataset variables"""
+    def __init__(self, dataset):
+        self.dataset = dataset
 
-class ScalarVariable(_VariableBase):
-    def initialize(self, data_type="d", fill_value = 0):
-        """Create the variable in the underlying netCDF4 dataset"""
-        dims=("I",)
-        try: self.dataset.createVariable(self.name, data_type, dims, fill_value=fill_value)
-        except Exception as ex: raise Exception("Failed to create variable for {0} of type {1} with fill value {2}, error = {3}".format(self.name, data_type, dims, fill_value, str(ex)))
+    def get_variable(self, name):
+        """Parameters
+        ----------
+        name : str
+            Name of the variable
 
-    def get_value(self):
-        """
         Returns
         -------
-        value : double
+        value : `sofa.access.Variable`
+            Access object for the variable
         """
-        if not self.exists():
-            raise Exception("failed to get value of {0}, variable not initialized".format(self.name))
+        return Variable(self.dataset, name)
 
-        return np.squeeze(self._Matrix[:])
-
-    def set_value(self, value):
-        """
-        Parameters
+    def create_variable(self, name, dims, data_type="d", fill_value=0):
+        """Parameters
         ----------
-        value : double
-            New value
-        """
-        if not self.exists():
-            raise Exception("failed to set value of {0}, variable not initialized".format(self.name))
+        name : str
+            Name of the variable
+        dims : tuple(str)
+            Dimensions of the variable
 
-        self._Matrix[:] = value
+        Returns
+        -------
+        value : `sofa.access.Variable`
+            Access object for the variable
+        """
+        var = self.get_variable(name)
+        if var.exists():
+            #TODO: add raise error?
+            print(name, "already exists in the dataset!")
+            return var
+        var.initialize(dims, data_type=data_type, fill_value=fill_value)
+        return var
+
+    def list_variables(self):
+        """Returns
+        -------
+        attrs : list
+            List of the existing dataset variable names
+        """
+        return sorted(self.dataset.variables.keys())
+
+    def dump(self):
+        """Prints all variables and their dimensions"""
+        for vname in self.list_variables():
+            print("{0}: {1}".format(vname, self.get_variable(vname).dimensions()))
         return
 
-    # TODO: fix sphinx documentation order, currently adds inherited members in the middle
+class ProxyObject:
+    """Proxy object that provides access to variables and attributes of a name group in the netCDF4 dataset"""
+    def __init__(self, database, name):
+        self._database = database
+        self._name = name
+        return
+        
+    @property
+    def database(self): return self._database
+    
+    @property
+    def name(self): return self._name
+    
+    @property
+    def dataset(self): 
+        try: return self._dataset
+        except:
+            if self.database is None: return None
+            return self.database._dataset
+    @dataset.setter
+    def dataset(self, value): 
+        if self.database is None: 
+            print("database is None, this should not happen.")
+            return
+        self.database._dataset = value
+        
+    @staticmethod
+    def _valid_data_name(name):
+        if "_" in name: return False
+        if name in ["name", "database", "dataset", "Metadata", "Variables"]: return False
+        return True     
+        
+    def __getattribute__(self, name):
+        try:
+            return super().__getattribute__(name)
+        except AttributeError:
+            if not ProxyObject._valid_data_name(name) or self.dataset is None: raise
+            
+            container_name = self.name+name
+            if container_name in self.database.Variables.list_variables():
+                # attribute is a variable, return proper access class
+                return self.database.Variables.get_variable(container_name)
+            elif container_name in self.database.Metadata.list_attributes():
+                # attribute is an attribute in the netcdf-4 dataset
+                return self.database.Metadata.get_attribute(container_name)
+            else:
+                print(container_name, "not part of .SOFA dataset")
+                raise
+                
+    def __setattr__(self, name, value):
+        if not ProxyObject._valid_data_name(name) or self.dataset is None: 
+            super().__setattr__(name, value)
+            return        
+            
+        try: self.__getattribute__(name)
+        except: raise # attribute does not exist, so we don't know what or where it should be
+            
+        container_name = self.name + name
+        
+        if self.database.Variables is not None and container_name in self.database.Variables.list_variables():
+            # attempting to set directly to a variable
+            try:
+                self.__getattribute__(name).set_values(value)
+            except:
+                print("Failed to set values on variable", container_name, "directly, use Variable.set_values instead.")
+                raise
+        elif self.database.Metadata is not None and container_name in self.database.Metadata.list_attributes():
+            # setting a netCDF4 attribute
+            self.database.Metadata.set_attribute(container_name, value)
+            return
+        else: super().__setattr__(name, value)
+            
+    def create_attribute(self, name, value=""):
+        """Creates the attribute in the netCDF4 dataset with its full name `ProxyObject.name`+name"""
+        self.database.Metadata.create_attribute(self.name+name, value=value)
+        
+    def create_variable(self, name, dims, data_type="d", fill_value=0):
+        """Creates the attribute in the netCDF4 dataset with its full name `ProxyObject.name`+name
+        
+        Parameters
+        ----------
+        name : str
+            Name of the variable
+        dims : tuple(str)
+            Dimensions of the variable
+
+        Returns
+        -------
+        value : `sofa.access.Variable`
+            Access object for the variable
+        """
+        return self.database.Variables.create_variable(self.name+name, dims, data_type=data_type, fill_value=fill_value)
+        
+        
+    @property
+    def Description(self):
+        """Informal description of the object"""
+        return self.database.__getattribute__(self.name+"Description")
+    @Description.setter
+    def Description(self, value): self.database.__setattr__(self.name+"Description", value)

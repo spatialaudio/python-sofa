@@ -83,7 +83,7 @@ class _Base:
         return
 
     def define_measurements(self, dataset, measurement_count):
-        dataset.dataset.createDimension("M", measurement_count)
+        dataset.Dimensions.create_dimension("M", measurement_count)
         return
     
     def validate_spatial_object_settings(self, name, info_states, count):

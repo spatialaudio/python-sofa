@@ -24,18 +24,18 @@ from . import dimensions
 from .. import access
 
 class TF(_Base):
-    @property
-    def Real(self): 
-        """:class:`sofa.access.ArrayVariable` for the real part of the complex spectrum"""
-        return access.ArrayVariable(self.database.dataset, "Data.Real")
-    @property
-    def Imag(self): 
-        """:class:`sofa.access.ArrayVariable` for the imaginary part of the complex spectrum"""
-        return access.ArrayVariable(self.database.dataset, "Data.Imag")
-    @property
-    def N(self): 
-        """:class:`sofa.access.ArrayVariable` for the frequency values"""
-        return access.ArrayVariable(self.database.dataset, "N")
+#    @property
+#    def Real(self): 
+#        """:class:`sofa.access.Variable` for the real part of the complex spectrum"""
+#        return access.Variable(self.database.dataset, "Data.Real")
+#    @property
+#    def Imag(self): 
+#        """:class:`sofa.access.Variable` for the imaginary part of the complex spectrum"""
+#        return access.Variable(self.database.dataset, "Data.Imag")
+#    @property
+#    def N(self): 
+#        """:class:`sofa.access.Variable` for the frequency values"""
+#        return access.Variable(self.database.dataset, "N")
         
     def initialize(self, sample_count, string_length = 0):
         """Create the necessary variables and attributes
@@ -47,16 +47,16 @@ class TF(_Base):
         string_length : int, optional
             Size of the longest data string
         """
-        _Base._initialize_dimensions(self, sample_count, string_length = string_length)
-        default_values = self.database._convention.default_data
-
-        self.Real.initialize(dimensions.Definitions.DataValues(self.Type))
-        if default_values["Real"] != 0: self.Real.set_values(default_values["Real"])
-        self.Imag.initialize(dimensions.Definitions.DataValues(self.Type))
-        if default_values["Imag"] != 0: self.Imag.set_values(default_values["Imag"])
-        self.N.initialize(dimensions.Definitions.DataFrequencies(self.dataset.DataType))
-        self.N.set_values(default_values["N"])
-#        self.N.LongName = default_values["N.LongName"]
+        super()._initialize_dimensions(sample_count, string_length = string_length)
+        default_values = self.database._convention.default_data        
+        
+        self.create_variable("Real", dimensions.Definitions.DataValues(self.Type))
+        if default_values["Real"] != 0: self.Real = default_values["Real"]
+        self.create_variable("Imag", dimensions.Definitions.DataValues(self.Type))
+        if default_values["Imag"] != 0: self.Imag = default_values["Imag"]
+        
+        self.create_variable("N", dimensions.Definitions.DataFrequencies(self.Type))
+        self.N = default_values["N"]
         self.N.Units = dimensions.default_units["frequency"]
         return
 

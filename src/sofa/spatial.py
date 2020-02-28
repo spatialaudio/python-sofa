@@ -92,8 +92,8 @@ def transform(u, rot, x0, invert):
     if invert: t = t + x0
     return t
 
-class Coordinates(access.ArrayVariable):
-    """Specialized :class:`sofa.access.ArrayVariable` for spatial coordinates"""
+class Coordinates(access.Variable):
+    """Specialized :class:`sofa.access.Variable` for spatial coordinates"""
     class System:
         """Enum of valid coordinate systems"""
         Cartesian = "cartesian"
@@ -200,10 +200,11 @@ class Coordinates(access.ArrayVariable):
 
     def __init__(self, obj, descriptor):
         self.database = obj.database
-        access.ArrayVariable.__init__(self, self.database.dataset, obj.name+descriptor)
+        access.Variable.__init__(self, self.database.dataset, obj.name+descriptor)
         self.obj_name = obj.name
         self.descriptor = descriptor
         if descriptor == "Up": self.unit_proxy = obj.View
+        if descriptor == "CornerB": self.unit_proxy = obj.CornerA
 
     @property
     def Type(self):
@@ -245,7 +246,7 @@ class Coordinates(access.ArrayVariable):
         values : np.ndarray
             Coordinates in the original reference system
         """
-        values = access.ArrayVariable.get_values(self, indices, dim_order)
+        values = access.Variable.get_values(self, indices, dim_order)
         if system == None or system == self.Type:
             if self.Type != Coordinates.System.Spherical or angle_unit == None: return values
             system = self.Type
@@ -375,20 +376,11 @@ class Set:
 #    @Up.setter
 #    def Up(self, value): self._Up = value
 
-class Object:
+class Object(access.ProxyObject):
     """Spatial object such as Listener, Receiver, Source, Emitter"""
     def __init__(self, database, name):
-        self.database = database
-        self.dataset = database.dataset
-        self.name = name
+        super().__init__(database, name)
         return
-
-    @property
-    def Description(self):
-        """Informal description of the spatial object"""
-        return self.database.Metadata.get_attribute(self.name+"Description")
-    @Description.setter
-    def Description(self, value): self.database.Metadata.set_attribute(self.name+"Description", value)
     
     @property
     def Position(self): 

@@ -23,42 +23,48 @@ from . import dimensions
 
 from .. import access
 
-class SOS(_Base):
-    @property
-    def SOS(self): 
-        """:class:`sofa.access.ArrayVariable` for the second order sections"""
-        return access.ArrayVariable(self.database.dataset, "Data.SOS")
-    @property
-    def SamplingRate(self): 
-        """:class:`sofa.access.ScalarVariable` for the sampling rate"""
-        return access.ScalarVariable(self.database.dataset, "Data.SamplingRate")
-    @property
-    def Delay(self): 
-        """:class:`sofa.access.ArrayVariable` for the impulse response delay"""
-        return access.ArrayVariable(self.database.dataset, "Data.Delay")
-        
 
-    def initialize(self, sample_count, delay_varies, string_length = 0):
+class SOS(_Base):
+#    @property
+#    def SOS(self): 
+#        """:class:`sofa.access.Variable` for the second order sections"""
+#        return access.Variable(self.database.dataset, "Data.SOS")
+#    @property
+#    def SamplingRate(self): 
+#        """:class:`sofa.access.Variable` for the sampling rate"""
+#        return access.Variable(self.database.dataset, "Data.SamplingRate")
+#    @property
+#    def Delay(self): 
+#        """:class:`sofa.access.Variable` for the impulse response delay"""
+#        return access.Variable(self.database.dataset, "Data.Delay")
+        
+    @staticmethod
+    def optional_variance_names():
+        return ["SamplingRate", "Delay"]
+        
+    def initialize(self, sample_count, variances=[], string_length = 0):
         """Create the necessary variables and attributes
         
         Parameters
         ----------
         sample_count : int
             Number of samples per measurement
-        delay_varies : bool
-            Whether the Delay varies between measurements
+        variances : list
+            Names of the variables that vary along dimension M
         string_length : int, optional
             Size of the longest data string
         """
-        _Base._initialize_dimensions(self, sample_count, string_length = string_length)
-        default_values = self.database._convention.default_data
-
-        self.SOS.initialize(dimensions.Definitions.DataValues(self.Type))
-        if default_values["SOS"] != 0: self.SOS.set_values(default_values["SOS"])
-        self.SamplingRate.initialize()
-        self.SamplingRate.set_value(default_values["SamplingRate"])
+        super()._initialize_dimensions(sample_count, string_length = string_length)
+        default_values = self.database._convention.default_data        
+        
+        self.create_variable("SOS", dimensions.Definitions.DataValues(self.Type))
+        if default_values["SOS"] != 0: self.SOS = default_values["SOS"]
+        
+        self.create_variable("SamplingRate", dimensions.Definitions.DataSamplingRate(self.Type, varies="SamplingRate" in variances))
+        self.SamplingRate = default_values["SamplingRate"]
         self.SamplingRate.Units = dimensions.default_units["frequency"]
-        self.Delay.initialize(dimensions.Definitions.DataDelay(self.Type, delay_varies))
-        if default_values["Delay"] != 0: self.Delay.set_values(default_values["Delay"])
+        
+        self.create_variable("Delay", dimensions.Definitions.DataDelay(self.Type, varies="Delay" in variances))
+        if default_values["Delay"] != 0: self.Delay = default_values["Delay"]
         return    
 
