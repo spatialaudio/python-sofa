@@ -18,43 +18,14 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-from .base import _Base
+from .SimpleFreeFieldHRIR import SimpleFreeFieldHRIR
 
-from .. import spatial
-
-class SimpleFreeFieldSOS(_Base):
+class SimpleFreeFieldSOS(SimpleFreeFieldHRIR):
     name = "SimpleFreeFieldSOS"
     version = "1.0"
-    def __init__(self):
-        _Base.__init__(self)
-        self.default_objects["Source"]["coordinates"].Position = [0,0,1]
-        self.default_objects["Source"]["system"] = spatial.Coordinates.System.Spherical
-        self.default_objects["Emitter"]["count"] = 1
-        self.default_objects["Receiver"]["count"] = 2
 
-        self.head_radius = 0.09
+    def add_metadata(self, database):
+        super().add_metadata(database)
 
-        self.conditions["must have 1 Emitter"] = lambda name, info_states, count: name != "Emitter" or count == 1
-        self.conditions["must have 2 Receivers"] = lambda name, info_states, count: name != "Receiver" or count == 2
-        self.conditions["must have Listener Up and View)"] = lambda name, info_states, count: name != "Listener" or (not spatial.Coordinates.State.is_used(info_states.Up))
-
-    def add_metadata(self, dataset):
-        _Base.add_general_defaults(dataset)
-
-        dataset.SOFAConventions = self.name
-        dataset.SOFAConventionsVersion = self.version
-        dataset.DataType = "SOS"
-        dataset.RoomType = "free field"
-        dataset.DatabaseName = ""
-        dataset.ListenerShortName = ""
+        database.Data.Type = "SOS"
         return
-
-    def set_default_spatial_values(self, spobj):
-        _Base._set_default_spatial_values(self, spobj)
-
-        self.set_default_Receiver(spobj)
-        return
-    
-    def set_default_Receiver(self, spobj):
-        if spobj.name != "Receiver": return
-        spobj.Position.set_values([[0,self.head_radius,0], [0,-self.head_radius,0]], dim_order=("R", "C"), repeat_dim=("M"))

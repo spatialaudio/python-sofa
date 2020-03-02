@@ -18,10 +18,21 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-from .FIR import FIR
+from .base import _Base
 
-class FIRE(FIR):
-    def _create(self, default_values):
-        FIR._create(self, default_values)
-        return    
+class FIRE(_Base):
+    """Finite Impulse Response per Emitter data type:
 
+    IR : `sofa.access.Variable`
+        Discrete time impulse responses, dimensions ('M', 'R', 'E', 'N')
+    Delay : `sofa.access.Variable`
+        Broadband delay in units of dimension 'N', dimensions ('I', 'R', 'E') or ('M', 'R', 'E')
+    SamplingRate : `sofa.access.Variable`
+        Sampling rate, dimensions ('I') or ('M'), with attribute "Units"
+    """
+
+    def __init__(self, database):
+        super().__init__(database)
+        self.standard_dimensions["IR"] = [("M", "R", "E", "N")]
+        self.standard_dimensions["Delay"] = [("I", "R", "E"), ("M", "R", "E")]
+        self.standard_dimensions["SamplingRate"] = [("I",), ("M",)]

@@ -18,14 +18,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-from .SimpleFreeFieldHRIR import SimpleFreeFieldHRIR
+"""Classes for accessing RoomType-specific data.
+"""
 
-class SimpleFreeFieldTF(SimpleFreeFieldHRIR):
-    name = "SimpleFreeFieldTF"
-    version = "1.0"
+from .base import _Base
 
-    def add_metadata(self, database):
-        super().add_metadata(database)
-
-        database.Data.Type = "TF"
-        return
+class Reverberant(_Base):
+    def initialize(self, variances=[], string_length=None):
+        super().initialize(variances, string_length)
+        if "Description" in variances: self.create_string_array("Description", "M")
+        else: self.create_attribute("Description")

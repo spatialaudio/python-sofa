@@ -18,14 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-from .SimpleFreeFieldHRIR import SimpleFreeFieldHRIR
-
-class SimpleFreeFieldTF(SimpleFreeFieldHRIR):
-    name = "SimpleFreeFieldTF"
-    version = "1.0"
-
-    def add_metadata(self, database):
-        super().add_metadata(database)
-
-        database.Data.Type = "TF"
-        return
+"""
+"""
+from .coordinates import *
+from .spatialobject import *

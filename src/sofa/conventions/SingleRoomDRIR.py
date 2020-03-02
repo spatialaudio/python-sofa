@@ -25,14 +25,15 @@ from .. import spatial
 class SingleRoomDRIR(_Base):
     name = "SingleRoomDRIR"
     version = "0.3"
+    
     def __init__(self):
         _Base.__init__(self)
-        self.default_objects["Source"]["coordinates"].View = [-1,0,0]
+        self.default_objects["Source"]["coordinates"]["View"] = [-1,0,0]
         self.default_objects["Emitter"]["count"] = 1
 
-        self.conditions["must have 1 Emitter"] = lambda name, info_states, count: name != "Emitter" or count == 1
-        self.conditions["must have Listener Up and View)"] = lambda name, info_states, count: name != "Listener" or (not spatial.Coordinates.State.is_used(info_states.Up))
-        self.conditions["must have Source Up and View)"] = lambda name, info_states, count: name != "Source" or (not spatial.Coordinates.State.is_used(info_states.Up))
+        self.conditions["must have 1 Emitter"] = lambda name, fixed, variances, count: name != "Emitter" or count == 1
+        self.conditions["must have Listener Up and View)"] = lambda name, fixed, variances, count: name != "Listener" or ("Up" in fixed + variances and "View" in fixed + variances)
+        self.conditions["must have Source Up and View)"] = lambda name, fixed, variances, count: name != "Source" or ("Up" in fixed + variances and "View" in fixed + variances)
 
     def add_metadata(self, dataset):
         _Base.add_general_defaults(dataset)
@@ -41,8 +42,4 @@ class SingleRoomDRIR(_Base):
         dataset.SOFAConventionsVersion = self.version
         dataset.DataType = "FIR"
         dataset.RoomType = "reverberant"
-        return
-
-    def set_default_spatial_values(self, spobj):
-        _Base._set_default_spatial_values(self, spobj)
         return

@@ -25,20 +25,12 @@ from .. import spatial
 class GeneralFIR(_Base):
     name = "GeneralFIR"
     version = "1.0"
-    def __init__(self):
-        _Base.__init__(self)
-        self.default_objects["Source"]["coordinates"].Position = [0,0,1]
-        self.default_objects["Source"]["system"] = spatial.Coordinates.System.Spherical
 
-    def add_metadata(self, dataset):
-        _Base.add_general_defaults(dataset)
+    def add_metadata(self, database):
+        _Base.add_general_defaults(database)
+        database.Metadata.set_attribute("SOFAConventions", self.name)
+        database.Metadata.set_attribute("SOFAConventionsVersion", self.version)
 
-        dataset.SOFAConventions = self.name
-        dataset.SOFAConventionsVersion = self.version
-        dataset.DataType = "FIR"
-        dataset.RoomType = "free field"
+        database.Data.Type = "FIR"
         return
 
-    def set_default_spatial_values(self, spobj):
-        _Base._set_default_spatial_values(self, spobj)
-        return

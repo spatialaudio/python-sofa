@@ -27,26 +27,24 @@ class SimpleFreeFieldHRIR(_Base):
     version = "1.0"
     def __init__(self):
         _Base.__init__(self)
-        self.default_objects["Source"]["coordinates"].Position = [0,0,1]
-        self.default_objects["Source"]["system"] = spatial.Coordinates.System.Spherical
         self.default_objects["Emitter"]["count"] = 1
-        self.default_objects["Receiver"]["count"] = 2
+        #self.default_objects["Receiver"]["count"] = 2 # note: standardized convention allows unlimited receivers, despite the name HRIR
 
         self.head_radius = 0.09
 
-        self.conditions["must have 1 Emitter"] = lambda name, info_states, count: name != "Emitter" or count == 1
-        self.conditions["must have 2 Receivers"] = lambda name, info_states, count: name != "Receiver" or count == 2
-        self.conditions["must have Listener Up and View)"] = lambda name, info_states, count: name != "Listener" or (not spatial.Coordinates.State.is_used(info_states.Up))
+        self.conditions["must have 1 Emitter"] = lambda name, fixed, variances, count: name != "Emitter" or count == 1
+        #self.conditions["must have 2 Receivers"] = lambda name, fixed, variances, count: name != "Receiver" or count == 2
+        self.conditions["must have Listener Up and View)"] = lambda name, fixed, variances, count: name != "Listener" or ("Up" in fixed + variances and "View" in fixed + variances)
 
-    def add_metadata(self, dataset):
-        _Base.add_general_defaults(dataset)
+    def add_metadata(self, database):
+        _Base.add_general_defaults(database)
+        database.Metadata.set_attribute("SOFAConventions", self.name)
+        database.Metadata.set_attribute("SOFAConventionsVersion", self.version)
 
-        dataset.SOFAConventions = self.name
-        dataset.SOFAConventionsVersion = self.version
-        dataset.DataType = "FIR"
-        dataset.RoomType = "free field"
-        dataset.DatabaseName = ""
-        dataset.ListenerShortName = ""
+        database.Data.Type = "FIR"
+
+        database.Metadata.set_attribute("DatabaseName", "")
+        database.Metadata.set_attribute("ListenerShortName", "")
         return
 
     def set_default_spatial_values(self, spobj):
@@ -57,4 +55,5 @@ class SimpleFreeFieldHRIR(_Base):
     
     def set_default_Receiver(self, spobj):
         if spobj.name != "Receiver": return
-        spobj.Position.set_values([[0,self.head_radius,0], [0,-self.head_radius,0]], dim_order=("R", "C"), repeat_dim=("M"))
+        if spobj.database.Dimensions.R == 2:
+            spobj.Position.set_values([[0,self.head_radius,0], [0,-self.head_radius,0]], dim_order=("R", "C"), repeat_dim=("M"))

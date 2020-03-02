@@ -19,52 +19,26 @@
 # THE SOFTWARE.
 
 from .base import _Base
-from . import dimensions
-
-from .. import access
 
 
 class SOS(_Base):
-#    @property
-#    def SOS(self): 
-#        """:class:`sofa.access.Variable` for the second order sections"""
-#        return access.Variable(self.database.dataset, "Data.SOS")
-#    @property
-#    def SamplingRate(self): 
-#        """:class:`sofa.access.Variable` for the sampling rate"""
-#        return access.Variable(self.database.dataset, "Data.SamplingRate")
-#    @property
-#    def Delay(self): 
-#        """:class:`sofa.access.Variable` for the impulse response delay"""
-#        return access.Variable(self.database.dataset, "Data.Delay")
-        
-    @staticmethod
-    def optional_variance_names():
-        return ["SamplingRate", "Delay"]
-        
-    def initialize(self, sample_count, variances=[], string_length = 0):
-        """Create the necessary variables and attributes
-        
-        Parameters
-        ----------
-        sample_count : int
-            Number of samples per measurement
-        variances : list
-            Names of the variables that vary along dimension M
-        string_length : int, optional
-            Size of the longest data string
-        """
-        super()._initialize_dimensions(sample_count, string_length = string_length)
-        default_values = self.database._convention.default_data        
-        
-        self.create_variable("SOS", dimensions.Definitions.DataValues(self.Type))
-        if default_values["SOS"] != 0: self.SOS = default_values["SOS"]
-        
-        self.create_variable("SamplingRate", dimensions.Definitions.DataSamplingRate(self.Type, varies="SamplingRate" in variances))
-        self.SamplingRate = default_values["SamplingRate"]
-        self.SamplingRate.Units = dimensions.default_units["frequency"]
-        
-        self.create_variable("Delay", dimensions.Definitions.DataDelay(self.Type, varies="Delay" in variances))
-        if default_values["Delay"] != 0: self.Delay = default_values["Delay"]
-        return    
+    """Second Order Sections data type:
 
+    SOS : `sofa.access.Variable`
+        Second order sections, dimensions ('M', 'R', 'N')
+    Delay : `sofa.access.Variable`
+        Broadband delay in samples resulting from SamplingRate, dimensions ('M', 'R')
+    SamplingRate : `sofa.access.Variable`
+        Sampling rate, dimensions ('I') or ('M'), with attribute "Units"
+    """
+
+    def __init__(self, database):
+        super().__init__(database)
+        self.standard_dimensions["IR"] = [("M", "R", "N")]
+        self.standard_dimensions["Delay"] = [("M", "R")]
+        self.standard_dimensions["SamplingRate"] = [("I",), ("M",)]
+
+    def initialize(self, measurement_count, sample_count, variances=[], string_length=None):
+        if sample_count % 6 != 0: raise Exception(
+            "Cannot initialize SOS DataType with dimension 'N'={0}, must be multiple of 6!".format(sample_count))
+        super().initialize(measurement_count, sample_count, variances, string_length)

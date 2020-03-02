@@ -22,14 +22,14 @@ from .. import access
 
 class _Base(access.ProxyObject):
     def __init__(self, database):
-        super().__init__(database, "Data.")
+        super().__init__(database, "Room")
 
     @property
     def Type(self): 
         """SOFA data type"""
-        return self.database.Metadata.get_attribute("DataType")
+        return self.database.Metadata.get_attribute("RoomType")
     @Type.setter
-    def Type(self, value): self.database.Metadata.set_attribute("DataType", value)
+    def Type(self, value): self.database.Metadata.set_attribute("RoomType", value)
 
     def optional_variance_names(self):
         vardims = []
@@ -37,7 +37,7 @@ class _Base(access.ProxyObject):
             if any(["I" in dims for dims in v]) and any(["M" in dims for dims in v]): vardims.append(k)
         return vardims
 
-    def initialize(self, measurement_count, sample_count, variances=[], string_length=None):
+    def initialize(self, variances=[], string_length=None):
         """Create the necessary variables and attributes
 
         Parameters
@@ -51,8 +51,6 @@ class _Base(access.ProxyObject):
         string_length : int, optional
             Size of the longest data string
         """
-        self.database.Dimensions.create_dimension("M", measurement_count)
-        self.database.Dimensions.create_dimension("N", sample_count)
         if string_length is not None: self.database.Dimensions.create_dimension("S", string_length)
 
         default_values = self.database._convention.default_data

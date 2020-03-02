@@ -18,44 +18,24 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-from .base import _Base
+from .SimpleFreeFieldHRIR import SimpleFreeFieldHRIR
 
-from .. import spatial
-
-class MultiSpeakerBRIR(_Base):
+class MultiSpeakerBRIR(SimpleFreeFieldHRIR):
     name = "MultiSpeakerBRIR"
     version = "0.3"
     def __init__(self):
-        _Base.__init__(self)
-        self.default_objects["Source"]["coordinates"].Position = [0,0,1]
-        self.default_objects["Source"]["system"] = spatial.Coordinates.System.Spherical
+        super().__init__()
         self.default_objects["Receiver"]["count"] = 2
 
-        self.default_data["IR"]=1
+        #self.default_data["IR"] = 1
 
-        self.head_radius = 0.09
+        self.conditions["must have 2 Receivers"] = lambda name, fixed, variances, count: name != "Receiver" or count == 2
+        self.conditions["must have Listener Up and View)"] = lambda name, fixed, variances, count: name != "Listener" or ("Up" in fixed + variances and "View" in fixed + variances)
+        self.conditions["must have both Emitter View and Up or neither"] = lambda name, fixed, variances, count: name != "Emitter" or "View" not in fixed + variances or ("Up" in fixed + variances and "View" in fixed + variances)
 
-        self.conditions["must have 2 Receivers"] = lambda name, info_states, count: name != "Receiver" or count == 2
-        self.conditions["must have Listener Up and View)"] = lambda name, info_states, count: name != "Listener" or (not spatial.Coordinates.State.is_used(info_states.Up))
-        self.conditions["must have both Emitter View and Up or neither"] = lambda name, info_states, count: name != "Emitter" or (spatial.Coordinates.State.is_used(info_states.View) == spatial.Coordinates.State.is_used(info_states.Up))
+    def add_metadata(self, database):
+        super().add_metadata(database)
 
-    def add_metadata(self, dataset):
-        _Base.add_general_defaults(dataset)
-
-        dataset.SOFAConventions = self.name
-        dataset.SOFAConventionsVersion = self.version
-        dataset.DataType = "FIRE"
-        dataset.RoomType = "reverberant"
-        dataset.DatabaseName = ""
-        dataset.ListenerShortName = ""
+        database.Data.Type = "FIRE"
+        database.Room.Type = "reverberant"
         return
-
-    def set_default_spatial_values(self, spobj):
-        _Base._set_default_spatial_values(self, spobj)
-
-        self.set_default_Receiver(spobj)
-        return
-    
-    def set_default_Receiver(self, spobj):
-        if spobj.name != "Receiver": return
-        spobj.Position.set_values([[0,self.head_radius,0], [0,-self.head_radius,0]], dim_order=("R", "C"), repeat_dim=("M"))

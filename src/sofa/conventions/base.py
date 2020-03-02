@@ -26,81 +26,70 @@ class _Base:
         self.default_objects = {
             "Listener" : {
                 "count" : 1,
-                "coordinates" : spatial.Set(Position=[0,0,0], View=[1,0,0], Up=[0,0,1]),
-                "system" : spatial.Coordinates.System.Cartesian
                 },
-            "Receiver" : {
-                "coordinates" : spatial.Set(Position=[0,0,0], View=[1,0,0], Up=[0,0,1]),
-                "system" : spatial.Coordinates.System.Cartesian
-                },
+            "Receiver" : {},
             "Source" : {
                 "count" : 1,
-                "coordinates" : spatial.Set(Position=[0,0,0], View=[1,0,0], Up=[0,0,1]),
-                "system" : spatial.Coordinates.System.Cartesian
                 },
-            "Emitter" : {
-                "coordinates" : spatial.Set(Position=[0,0,0], View=[1,0,0], Up=[0,0,1]),
-                "system" : spatial.Coordinates.System.Cartesian
-                },
+            "Emitter" : {},
             }
-        self.conditions = {"Position required" : lambda name, info_states, count: spatial.Coordinates.State.is_used(info_states.Position),
-            "only 1 Listener considered" : lambda name, info_states, count: name != "Listener" or count == 1,
-            "only 1 Source considered" : lambda name, info_states, count: name != "Source" or count == 1,
-            "Up requires View" : lambda name, info_states, count: (not spatial.Coordinates.State.is_used(info_states.Up)) or (spatial.Coordinates.State.is_used(info_states.View)),
+        self.conditions = {
+            "only 1 Listener considered" : lambda name, fixed, variances, count: name != "Listener" or count == 1,
+            "only 1 Source considered" : lambda name, fixed, variances, count: name != "Source" or count == 1,
             }
         self.default_data = {
             "IR" : 0,
             "Delay" : 0,
             "SamplingRate" : 48000,
+            "SamplingRate:Units" : "hertz",
 
             "Real" : 0,
             "Imag" : 0,
             "N" : 0,
             "N.LongName" : "frequency",
 
-            "SOS" : 0 #TODO permute([0 0 0 1 0 0],[3 1 2])
+            "SOS" : 0 #TODO repeat [0 0 0 1 0 0] along N
             }
         return
 
-    def add_general_defaults(dataset):
-        dataset.Conventions = "SOFA"
-        dataset.Version = "1.0"
-        dataset.Title = ""
-        dataset.DateCreated = ""
-        dataset.DateModified = ""
-        dataset.APIName = "python-SOFA"
-        dataset.APIVersion = "0.1"
-        dataset.AuthorContact = ""
-        dataset.Organization = ""
-        dataset.License = "No license provided, ask the author for permission"
+    def add_general_defaults(database):
+        database.Metadata.set_attribute("Conventions", "SOFA")
+        database.Metadata.set_attribute("Version", "1.0")
+        database.Metadata.set_attribute("Title", "")
+        database.Metadata.set_attribute("DateCreated", "")
+        database.Metadata.set_attribute("DateModified", "")
+        database.Metadata.set_attribute("APIName", "python-SOFA")
+        database.Metadata.set_attribute("APIVersion", "0.2")
+        database.Metadata.set_attribute("AuthorContact", "")
+        database.Metadata.set_attribute("Organization", "")
+        database.Metadata.set_attribute("License", "No license provided, ask the author for permission")
 
-        dataset.createDimension("I", 1)
-        dataset.createDimension("C", 3)
-        dataset.ListenerDescription = ""
-        dataset.ReceiverDescription = ""
-        dataset.SourceDescription = ""
-        dataset.EmitterDescription = ""
+        database.Metadata.set_attribute("RoomType", "free field")
+        database.Metadata.set_attribute("DataType", "FIR")
         return
 
-    def define_measurements(self, dataset, measurement_count):
-        dataset.Dimensions.create_dimension("M", measurement_count)
-        return
-    
     def validate_spatial_object_settings(self, name, info_states, count):
         for con in self.conditions:
             if not self.conditions[con](name, info_states, count): raise Exception(con)
 
     def _set_default_spatial_values(self, spobj):
         name = spobj.name
-        rd = tuple(x for x in getattr(datatypes.dimensions.Definitions, name)(spatial.Coordinates.State.Varying) if x!="C")
+        if name not in self.default_objects: return
+        coordinates = self.default_objects[name]["coordinates"]
+        system = self.default_objects[name]["system"]
+
         if spobj.Position.exists():
-            spobj.Position.set_values(self.default_objects[name]["coordinates"].Position, repeat_dim=rd)
-            spobj.Position.set_system(self.default_objects[name]["system"])
+            rd = tuple(x for x in spobj.Position.dimensions() if x != "C")
+            if "Position" in system: spobj.Position.set_system(csystem=system)
+            if "Position" in coordinates: spobj.Position.set_values(coordinates["Position"], repeat_dim = rd)
         if spobj.View.exists():
-            spobj.View.set_values(self.default_objects[name]["coordinates"].View, repeat_dim=rd)
-            spobj.View.set_system(self.default_objects[name]["system"])
+            rd = tuple(x for x in spobj.View.dimensions() if x != "C")
+            if "View" in system: spobj.View.set_system(csystem=system)
+            if "View" in coordinates: spobj.View.set_values(coordinates["View"], repeat_dim = rd)
         if spobj.Up.exists():
-            spobj.Up.set_values(self.default_objects[name]["coordinates"].Up, repeat_dim=rd)
+            rd = tuple(x for x in spobj.Up.dimensions() if x != "C")
+            if "Up" in system: spobj.Up.set_system(csystem=system)
+            if "Up" in coordinates: spobj.View.set_values(coordinates["Up"], repeat_dim = rd)
         return
         
 

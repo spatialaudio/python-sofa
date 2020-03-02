@@ -18,14 +18,27 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-from .SimpleFreeFieldHRIR import SimpleFreeFieldHRIR
+"""Classes for accessing RoomType-specific data.
+"""
 
-class SimpleFreeFieldTF(SimpleFreeFieldHRIR):
-    name = "SimpleFreeFieldTF"
-    version = "1.0"
+from .base import _Base
+from .. import spatial
 
-    def add_metadata(self, database):
-        super().add_metadata(database)
+class Shoebox(_Base):
 
-        database.Data.Type = "TF"
-        return
+    """Shoebox room type:
+    CornerA : `sofa.spatial.Coordinates`
+        First corner of room cuboid, dimensions ('I', 'C') or ('M', 'C')
+    CornerB : `sofa.spatial.Coordinates`
+        Opposite corner of room cuboid, dimensions ('I', 'C') or ('M', 'C')
+    """
+
+    @property
+    def CornerA(self):
+        """First corner of room cuboid"""
+        return spatial.Coordinates(self, "CornerA")
+
+    @property
+    def CornerB(self):
+        """Opposite corner of room cuboid"""
+        return spatial.Coordinates(self, "CornerB")

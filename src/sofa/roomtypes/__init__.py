@@ -18,14 +18,32 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-from .SimpleFreeFieldHRIR import SimpleFreeFieldHRIR
+"""Classes for accessing RoomType-specific data.
+"""
+__all__ = ["implemented", "FreeField", "Reverberant", "Shoebox"]
 
-class SimpleFreeFieldTF(SimpleFreeFieldHRIR):
-    name = "SimpleFreeFieldTF"
-    version = "1.0"
+from .freefield import FreeField
+from .reverberant import Reverberant
+from .shoebox import Shoebox
 
-    def add_metadata(self, database):
-        super().add_metadata(database)
 
-        database.Data.Type = "TF"
-        return
+def implemented():
+    """Returns
+    -------
+    list
+        Names of implemented SOFA room types
+    """
+    return list(List.keys())
+
+
+List = {
+    "free field": FreeField,
+    "reverberant": Reverberant,
+    "shoebox": Shoebox
+}
+
+
+def get(database):
+    if database.RoomType in List.keys(): return List[database.dataset.RoomType](database)
+    print("Unknown RoomType", database.DataType, ", returning free field instead")
+    return List["free field"](database)

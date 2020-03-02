@@ -20,7 +20,7 @@
 
 """SOFA API for Python.
 """
-__version__='0.1.0'
+__version__ = '0.1.0'
 
 from . import access
 from . import datatypes
@@ -33,12 +33,13 @@ from enum import Enum
 import netCDF4 as ncdf
 from datetime import datetime
 
-class Database(access.ProxyObject):  
+
+class Database(access.ProxyObject):
     """Read and write NETCDF4 files following the SOFA specifications and conventions"""
 
     def __init__(self):
         super().__init__(self, "")
-        
+
         self._dataset = None
         self._convention = None
 
@@ -50,7 +51,6 @@ class Database(access.ProxyObject):
 
         self._Metadata = None
         self._Variables = None
-        
 
     @staticmethod
     def create(path, convention, measurements):
@@ -71,15 +71,17 @@ class Database(access.ProxyObject):
         """
         sofa = Database()
         sofa.dataset = ncdf.Dataset(path, mode="w")
-        sofa._convention = conventions.List[convention]()
-        
-        sofa._convention.add_metadata(sofa.dataset)
-        sofa.DateCreated = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        sofa.Dimensions.create_dimension("I", 1)
+        sofa.Dimensions.create_dimension("C", 3)
+        sofa.Dimensions.create_dimension("M", measurements)
 
-        sofa._convention.define_measurements(sofa, measurements)
+        sofa._convention = conventions.List[convention]()
+
+        sofa._convention.add_metadata(sofa)
+        sofa.DateCreated = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         return sofa
-      
-    @staticmethod  
+
+    @staticmethod
     def open(path, mode='r', parallel=False):
         """Parameters
         ----------
@@ -102,16 +104,17 @@ class Database(access.ProxyObject):
         if sofa.dataset.SOFAConventions in conventions.implemented():
             sofa._convention = conventions.List[sofa.dataset.SOFAConventions]()
         else:
-            default = "General"+sofa.dataset.DataType
+            default = "General" + sofa.dataset.DataType
             sofa._convention = conventions.List[default]()
         return sofa
 
     def close(self):
-#        """Save and close the underlying NETCDF4 dataset"""
-        try: 
+        #        """Save and close the underlying NETCDF4 dataset"""
+        try:
             self.save()
-        except: pass #avoid errors when closing files in read mode
-        if self.dataset != None: self.dataset.close()
+        except:
+            pass  # avoid errors when closing files in read mode
+        if self.dataset is not None: self.dataset.close()
 
         self._dataset = None
         self._convention = None
@@ -124,90 +127,88 @@ class Database(access.ProxyObject):
 
         self._Metadata = None
 
-        return 
+        return
 
     def save(self):
-#        """Save the underlying NETCDF4 dataset"""
-        if self.dataset == None: return
+        #        """Save the underlying NETCDF4 dataset"""
+        if self.dataset is None: return
         self.DateModified = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         self.dataset.sync()
-            
+
     ## data    
     @property
-    def Data(self): 
+    def Data(self):
         """DataType specific access for the measurement data, see :mod:`sofa.datatypes`"""
         return datatypes.get(self)
 
     @property
-    def Dimensions(self): 
+    def Dimensions(self):
         """:class:`sofa.access.Dimensions` for the database dimensions"""
-        if self.dataset is None: 
+        if self.dataset is None:
             print("No dataset open!")
             return None
         if self._Dimensions is None: self._Dimensions = access.Dimensions(self.dataset)
         return self._Dimensions
-    
+
     ## experimental setup
     @property
-    def Listener(self): 
-        """:class:`sofa.spatial.Object` for the Listener"""
-        if self.dataset is None: 
+    def Listener(self):
+        """:class:`sofa.spatial.SpatialObject` for the Listener"""
+        if self.dataset is None:
             print("No dataset open!")
             return None
-        if self._Listener is None: self._Listener = spatial.Object(self, "Listener")
+        if self._Listener is None: self._Listener = spatial.SpatialObject(self, "Listener")
         return self._Listener
-    
+
     @property
     def Source(self):
-        """:class:`sofa.spatial.Object` for the Source"""
-        if self.dataset is None: 
+        """:class:`sofa.spatial.SpatialObject` for the Source"""
+        if self.dataset is None:
             print("No dataset open!")
             return None
-        if self._Source is None: self._Source = spatial.Object(self, "Source")
+        if self._Source is None: self._Source = spatial.SpatialObject(self, "Source")
         return self._Source
-    
+
     @property
-    def Receiver(self): 
-        """:class:`sofa.spatial.Object` for the Receiver(s)"""
-        if self.dataset is None: 
+    def Receiver(self):
+        """:class:`sofa.spatial.SpatialObject` for the Receiver(s)"""
+        if self.dataset is None:
             print("No dataset open!")
             return None
-        if self._Receiver is None: self._Receiver = spatial.Object(self, "Receiver")
+        if self._Receiver is None: self._Receiver = spatial.SpatialObject(self, "Receiver")
         return self._Receiver
-    
+
     @property
-    def Emitter(self): 
-        """:class:`sofa.spatial.Object` for the Emitter(s)"""
-        if self.dataset is None: 
+    def Emitter(self):
+        """:class:`sofa.spatial.SpatialObject` for the Emitter(s)"""
+        if self.dataset is None:
             print("No dataset open!")
             return None
-        if self._Emitter is None: self._Emitter = spatial.Object(self, "Emitter")
+        if self._Emitter is None: self._Emitter = spatial.SpatialObject(self, "Emitter")
         return self._Emitter
-        
+
     ## room
     @property
-    def Room(self): 
+    def Room(self):
         """RoomType specific access for the room data, see :mod:`sofa.roomtypes`"""
         return roomtypes.get(self)
-    
+
     ## metadata
     @property
-    def Metadata(self): 
+    def Metadata(self):
         """:class:`sofa.access.Metadata` for the database metadata"""
-        if self.dataset is None: 
+        if self.dataset is None:
             print("No dataset open!")
             return None
         if self._Metadata is None: self._Metadata = access.Metadata(self.dataset)
         return self._Metadata
 
-
     ## direct access to variables
     @property
     def Variables(self):
         """:class:`sofa.access.DatasetVariables` for direct access to database variables"""
-        if self.dataset is None: 
+        if self.dataset is None:
             print("No dataset open!")
             return None
-        if self._Variables is None: self._Variables = access.DatasetVariables(self.dataset)
+        if self._Variables is None: self._Variables = access.DatasetVariables(self)
         return self._Variables
-

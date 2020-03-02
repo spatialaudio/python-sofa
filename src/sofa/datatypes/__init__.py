@@ -20,11 +20,8 @@
 
 """Classes for accessing DataType-specific measurement data.
 """
-__version__ = "0.1.0"
 
 __all__=["implemented", "FIR", "FIRE", "SOS", "TF"]
-
-from . import dimensions
 
 from .FIR import FIR
 from .TF import TF
@@ -42,7 +39,7 @@ List = {
     
 def get(database):
     if database.DataType in List.keys(): return List[database.dataset.DataType](database)
-    print("Unknown DataType", file.DataType, ", returning FIR instead")
+    print("Unknown DataType", database.DataType, ", returning FIR instead")
     return List["FIR"](database)
 
 def implemented():

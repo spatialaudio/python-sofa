@@ -19,44 +19,34 @@
 # THE SOFTWARE.
 
 from .base import _Base
-from . import dimensions
 
-from .. import access
 
 class TF(_Base):
-#    @property
-#    def Real(self): 
-#        """:class:`sofa.access.Variable` for the real part of the complex spectrum"""
-#        return access.Variable(self.database.dataset, "Data.Real")
-#    @property
-#    def Imag(self): 
-#        """:class:`sofa.access.Variable` for the imaginary part of the complex spectrum"""
-#        return access.Variable(self.database.dataset, "Data.Imag")
-#    @property
-#    def N(self): 
-#        """:class:`sofa.access.Variable` for the frequency values"""
-#        return access.Variable(self.database.dataset, "N")
-        
-    def initialize(self, sample_count, string_length = 0):
-        """Create the necessary variables and attributes
-        
-        Parameters
-        ----------
-        sample_count : int
-            Number of samples per measurement
-        string_length : int, optional
-            Size of the longest data string
-        """
-        super()._initialize_dimensions(sample_count, string_length = string_length)
-        default_values = self.database._convention.default_data        
-        
-        self.create_variable("Real", dimensions.Definitions.DataValues(self.Type))
-        if default_values["Real"] != 0: self.Real = default_values["Real"]
-        self.create_variable("Imag", dimensions.Definitions.DataValues(self.Type))
-        if default_values["Imag"] != 0: self.Imag = default_values["Imag"]
-        
-        self.create_variable("N", dimensions.Definitions.DataFrequencies(self.Type))
-        self.N = default_values["N"]
-        self.N.Units = dimensions.default_units["frequency"]
-        return
+    """Transfer Function data type:
 
+    Real : `sofa.access.Variable`
+        Real part of the complex spectrum, dimensions ('M', 'R', 'N')
+    Imag : `sofa.access.Variable`
+        Imaginary part of the complex spectrum, dimensions ('M', 'R', 'N')
+    N : `sofa.access.Variable`
+        Frequency values, dimension ('N',), with attributes "LongName" and "Units"
+    """
+
+    def __init__(self, database):
+        super().__init__(database)
+        self.standard_dimensions["Real"] = [("M", "R", "N")]
+        self.standard_dimensions["Imag"] = [("M", "R", "N")]
+
+    @property
+    def N(self):
+        """Frequency values"""
+        return self.database.Variables.get_variable("N")
+
+    @N.setter
+    def N(self, value): self.N.set_values(value)
+
+    def initialize(self, measurement_count, sample_count, variances=[], string_length=None):
+        super().initialize(measurement_count, sample_count, variances, string_length)
+        var = self.database.Variables.create_variable("N", ("N",))
+        # var.LongName = "frequency" # LongName not mandatory
+        var.Units = "hertz"
