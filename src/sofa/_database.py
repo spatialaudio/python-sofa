@@ -63,13 +63,7 @@ class Database(access.ProxyObject):
         convention : str
             Name of the SOFA convention to create, see :func:`sofa.conventions.implemented`
         dimensions : dict or int, optional
-            Number of measurements or dict of dimensions to define
-            (standard dimensions:
-                "M": measurements,
-                "R": receivers,
-                "E": emitters,
-                "N": data length
-            )
+            Number of measurements or dict of dimensions to define (standard dimensions: "M": measurements, "R": receivers, "E": emitters, "N": data length)
 
         Returns
         -------

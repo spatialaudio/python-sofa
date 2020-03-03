@@ -27,11 +27,14 @@ from scipy.spatial.transform import Rotation  ## requires scipy 1.2.0
 
 def sph2cart(alpha, beta, r):
     r"""Spherical to cartesian coordinate transform.
+
     .. math::
         x = r \cos \alpha \sin \beta \\
         y = r \sin \alpha \sin \beta \\
         z = r \cos \beta
+
     with :math:`\alpha \in [0, 2\pi), \beta \in [-\frac{\pi}{2}, \frac{\pi}{2}], r \geq 0`
+
     Parameters
     ----------
     alpha : float or array_like
@@ -40,6 +43,7 @@ def sph2cart(alpha, beta, r):
             Elevation angle in radians (with 0 denoting azimuthal plane)
     r : float or array_like
             Radius
+
     Returns
     -------
     x : float or `numpy.ndarray`
@@ -57,11 +61,14 @@ def sph2cart(alpha, beta, r):
 
 def cart2sph(x, y, z):
     r"""Cartesian to spherical coordinate transform.
+
     .. math::
         \alpha = \arctan \left( \frac{y}{x} \right) \\
         \beta = \arccos \left( \frac{z}{r} \right) \\
         r = \sqrt{x^2 + y^2 + z^2}
+
     with :math:`\alpha \in [-pi, pi], \beta \in [-\frac{\pi}{2}, \frac{\pi}{2}], r \geq 0`
+
     Parameters
     ----------
     x : float or array_like
@@ -70,6 +77,7 @@ def cart2sph(x, y, z):
         y-component of Cartesian coordinates
     z : float or array_like
         z-component of Cartesian coordinates
+
     Returns
     -------
     alpha : float or `numpy.ndarray`
@@ -85,10 +93,10 @@ def cart2sph(x, y, z):
     return alpha, beta, r
 
 
-def transform(u, rot, x0, invert):
-    if not invert: u = u - x0
+def transform(u, rot, x0, invert, is_position):
+    if not invert and is_position: u = u - x0
     t = rot.apply(u, inverse=not invert)
-    if invert: t = t + x0
+    if invert and is_position: t = t + x0
     return t
 
 
@@ -114,24 +122,27 @@ def _get_object_transform(ref_object):
             ldim = ref_object.Position.get_local_dimension()
             if ldim not in order:
                 order = (ldim,) + order
-        position, view, up = ref_object.get_pose(dim_order=order, system=Coordinates.System.Cartesian)
+        position, view, up = ref_object.get_pose(dim_order=order, system=System.Cartesian)
 
     if np.size(position.shape) < 3:
-        def apply_transform(values, invert=False):
+        def apply_transform(values, is_position, invert=False):
             rotation = _rotation_from_view_up(view, up)
-            return transform(values, rotation, position, invert=invert)
+            return transform(values, rotation, position, invert, is_position)
     else:
-        def apply_transform(values, invert=False):
+        def apply_transform(values, is_position, invert=False):
             rotations = [_rotation_from_view_up(v, u) for v, u in zip(view, up)]
-            return np.asarray([transform(values, rot, pos, invert=invert) for rot, pos in zip(rotations, position)])
+            return np.asarray([transform(values, rot, pos, invert, is_position) for rot, pos in zip(rotations, position)])
     return apply_transform, order
 
 
 class Units:
     @staticmethod
-    def first_unit(unit_string): return unit_string.split((" "))[0].split((","))[0]
+    def first_unit(unit_string):
+        return unit_string.split((" "))[0].split((","))[0]
+
     @staticmethod
-    def last_unit(unit_string): return unit_string.split((" "))[-1].split((","))[-1]
+    def last_unit(unit_string):
+        return unit_string.split((" "))[-1].split((","))[-1]
 
     Metre = "metre"  # note: standard assumes british spelling
     Meter = "meter"
@@ -274,8 +285,10 @@ class Coordinates(access.Variable):
         if descriptor == "CornerB": self._unit_proxy = obj.CornerA
 
         ldim = self.get_local_dimension()
-        if ldim is None: self.standard_dimensions = [("I", "C"), ("M", "C")]
-        else: self.standard_dimensions = [(ldim, "C", "I"), (ldim, "C", "M")]
+        if ldim is None:
+            self.standard_dimensions = [("I", "C"), ("M", "C")]
+        else:
+            self.standard_dimensions = [(ldim, "C", "I"), (ldim, "C", "M")]
 
     def initialize(self, varies, defaults=None):
         super().initialize(self.standard_dimensions[0 if not varies else 1])
@@ -395,16 +408,17 @@ class Coordinates(access.Variable):
         # get transforms
         anchor_transform, at_order = _get_object_transform(self.get_global_reference_object())
         ref_transform, rt_order = _get_object_transform(ref_object)
+        is_position = self._descriptor not in ["View", "Up"]
 
         # transform values
         if ldim is None:
             original_values = self.get_values(dim_order=at_order, system=System.Cartesian)
-            transformed_values = ref_transform(anchor_transform(original_values, invert=True))
+            transformed_values = ref_transform(anchor_transform(original_values, is_position, invert=True), is_position)
             order = rt_order
         else:
             original_values_stack = self.get_values(dim_order=(ldim,) + at_order, system=System.Cartesian)
             transformed_values = np.asarray(
-                [ref_transform(anchor_transform(original_values, invert=True)) for original_values in
+                [ref_transform(anchor_transform(original_values, is_position, invert=True), is_position) for original_values in
                  original_values_stack])
             order = (ldim,) + rt_order
 
@@ -440,7 +454,8 @@ class Coordinates(access.Variable):
         if cunits is None:
             if ctype == System.Cartesian:
                 cunits = Units.Metre
-            else: cunits = Units.Degree
+            else:
+                cunits = Units.Degree
         self.Units = str(cunits)
 
     def set_values(self, values, indices=None, dim_order=None, repeat_dim=None, system=None, angle_unit=None):
@@ -479,7 +494,7 @@ class Coordinates(access.Variable):
                                                new_order,
                                                system, self.Type,
                                                angle_unit, self.Units
-                                              )[access.get_slice_tuple(new_order, {"C": indices["C"]})]
+                                               )[access.get_slice_tuple(new_order, {"C": indices["C"]})]
         else:
             new_values, sls = self._reorder_values_for_set(values, indices, dim_order, repeat_dim)
             new_order = access.get_default_dimension_order(self.dimensions(), indices)

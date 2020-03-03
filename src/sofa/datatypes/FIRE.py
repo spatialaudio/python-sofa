@@ -21,7 +21,7 @@
 from .base import _Base
 
 class FIRE(_Base):
-    """Finite Impulse Response per Emitter data type:
+    """Finite Impulse Response per Emitter data type
 
     IR : `sofa.access.Variable`
         Discrete time impulse responses, dimensions ('M', 'R', 'E', 'N')

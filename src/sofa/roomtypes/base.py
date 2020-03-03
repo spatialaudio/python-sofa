@@ -32,6 +32,7 @@ class _Base(access.ProxyObject):
     def Type(self, value): self.database.Metadata.set_attribute("RoomType", value)
 
     def optional_variance_names(self):
+        """Returns a list of standardized data elements that may vary between measurements"""
         vardims = []
         for k, v in self.standard_dimensions:
             if any(["I" in dims for dims in v]) and any(["M" in dims for dims in v]): vardims.append(k)

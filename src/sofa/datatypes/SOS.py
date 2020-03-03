@@ -22,7 +22,7 @@ from .base import _Base
 
 
 class SOS(_Base):
-    """Second Order Sections data type:
+    """Second Order Sections data type
 
     SOS : `sofa.access.Variable`
         Second order sections, dimensions ('M', 'R', 'N')
@@ -38,7 +38,7 @@ class SOS(_Base):
         self.standard_dimensions["Delay"] = [("M", "R")]
         self.standard_dimensions["SamplingRate"] = [("I",), ("M",)]
 
-    def initialize(self, sample_count, variances=[], string_length=None):
+    def initialize(self, sample_count=None, variances=[], string_length=None):
         if sample_count % 6 != 0: raise Exception(
             "Cannot initialize SOS DataType with dimension 'N'={0}, must be multiple of 6!".format(sample_count))
         super().initialize(sample_count, variances, string_length)

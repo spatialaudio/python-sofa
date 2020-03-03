@@ -20,6 +20,9 @@
 
 """
 """
+
+__all__=["DatasetVariables", "Dimensions", "Metadata", "ProxyObject", "StringArray", "Variable"]
+
 from .dimensions import Dimensions
 from .metadata import Metadata
 from .variables import *

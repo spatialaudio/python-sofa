@@ -26,7 +26,8 @@ from .. import spatial
 
 class Shoebox(_Base):
 
-    """Shoebox room type:
+    """Shoebox room type
+
     CornerA : `sofa.spatial.Coordinates`
         First corner of room cuboid, dimensions ('I', 'C') or ('M', 'C')
     CornerB : `sofa.spatial.Coordinates`
