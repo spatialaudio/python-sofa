@@ -19,7 +19,7 @@
 # THE SOFTWARE.
 
 from .. import access
-from .coordinates import Coordinates
+from .coordinates import *
 import numpy as np
 
 
@@ -73,9 +73,9 @@ class SpatialObject(access.ProxyObject):
         """
         mentioned = fixed + variances
         if "Position" not in mentioned:
-            raise ValueError("{0}.initialize: Missing 'Position' in fixed or variances argument".format(self.name))
+            if not self.Position.exists(): raise ValueError("{0}.initialize: Missing 'Position' in fixed or variances argument".format(self.name))
         if "Up" in mentioned and "View" not in mentioned:
-            raise ValueError("{0}.initialize: Missing 'View' in fixed or variances argument".format(self.name))
+            if not self.View.exists(): raise ValueError("{0}.initialize: Missing 'View' in fixed or variances argument".format(self.name))
 
         ldim = self.Position.get_local_dimension()
         if ldim is None:
@@ -94,7 +94,16 @@ class SpatialObject(access.ProxyObject):
         self.initialize_coordinates(fixed, variances)
         self.database.convention.set_default_spatial_values(self)
 
-    def initialize_coordinates(self, fixed, variances):
+    def initialize_coordinates(self, fixed=[], variances=[]):
+        """
+        Parameters
+        ----------
+        fixed : list(str), optional
+            List of spatial coordinates that are fixed for all measurements ["Position", "View", "Up"]
+        variances : list(str), optional
+            List of spatial coordinates that vary between measurements ["Position", "View", "Up"],
+            overrides mentions in fixed
+        """
         mentioned = fixed + variances
         for c in mentioned:
             var = self.__getattribute__(c)
@@ -138,7 +147,7 @@ class SpatialObject(access.ProxyObject):
             if dim_order is None: dim_order = access.get_default_dimension_order(self.Position.dimensions(), indices)
 
             anchor_position, anchor_view, anchor_up = anchor.get_pose(indices=indices, dim_order=anchor_order,
-                                                                      system=Coordinates.System.Cartesian)
+                                                                      system=System.Cartesian)
             position = np.repeat(np.expand_dims(anchor_position, 0), lcount, axis=0)
             view = np.repeat(np.expand_dims(anchor_view, 0), lcount, axis=0)
             up = np.repeat(np.expand_dims(anchor_up, 0), lcount, axis=0)
@@ -148,7 +157,7 @@ class SpatialObject(access.ProxyObject):
             position = self.Position.get_global_values(indices, dim_order, system, angle_unit)
         else:
             position = access.get_values_from_array(
-                Coordinates.System.convert(position, default_order, Coordinates.System.Cartesian, system, angle_unit,
+                System.convert(position, default_order, System.Cartesian, system, angle_unit,
                                            angle_unit),
                 default_order, dim_order=dim_order)
 
@@ -156,7 +165,7 @@ class SpatialObject(access.ProxyObject):
             view = self.View.get_global_values(indices, dim_order, system, angle_unit)
         else:
             view = access.get_values_from_array(
-                Coordinates.System.convert(view, default_order, Coordinates.System.Cartesian, system, angle_unit,
+                System.convert(view, default_order, System.Cartesian, system, angle_unit,
                                            angle_unit),
                 default_order, dim_order=dim_order)
 
@@ -164,7 +173,7 @@ class SpatialObject(access.ProxyObject):
             up = self.Up.get_global_values(indices, dim_order, system, angle_unit)
         else:
             up = access.get_values_from_array(
-                Coordinates.System.convert(up, default_order, Coordinates.System.Cartesian, system, angle_unit,
+                System.convert(up, default_order, System.Cartesian, system, angle_unit,
                                            angle_unit),
                 default_order, dim_order=dim_order)
 

@@ -109,11 +109,19 @@ class ProxyObject:
             raise
 
     def create_attribute(self, name, value=""):
-        """Creates the attribute in the netCDF4 dataset with its full name `ProxyObject.name`+name"""
+        """Creates the attribute in the netCDF4 dataset with its full name self.name+name
+
+        Parameters
+        ----------
+        name : str
+            Name of the variable
+        value : str, optional
+            Initial value of the attribute
+        """
         self.database.Metadata.create_attribute(self.name + name, value=value)
 
     def create_variable(self, name, dims, data_type="d", fill_value=0):
-        """Creates the variable in the netCDF4 dataset with its full name `ProxyObject.name`+name
+        """Creates the variable in the netCDF4 dataset with its full name self.name+name
         
         Parameters
         ----------
@@ -134,7 +142,7 @@ class ProxyObject:
                                                        fill_value=fill_value)
 
     def create_string_array(self, name, dims):
-        """Creates the string array in the netCDF4 dataset with its full name `ProxyObject.name`+name
+        """Creates the string array in the netCDF4 dataset with its full name self.name+name
 
         Parameters
         ----------

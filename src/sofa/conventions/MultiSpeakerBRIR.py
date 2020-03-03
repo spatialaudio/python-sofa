@@ -30,7 +30,7 @@ class MultiSpeakerBRIR(SimpleFreeFieldHRIR):
         #self.default_data["IR"] = 1
 
         self.conditions["must have 2 Receivers"] = lambda name, fixed, variances, count: name != "Receiver" or count == 2
-        self.conditions["must have Listener Up and View)"] = lambda name, fixed, variances, count: name != "Listener" or ("Up" in fixed + variances and "View" in fixed + variances)
+        self.conditions["must have Listener Up and View"] = lambda name, fixed, variances, count: name != "Listener" or ("Up" in fixed + variances and "View" in fixed + variances)
         self.conditions["must have both Emitter View and Up or neither"] = lambda name, fixed, variances, count: name != "Emitter" or "View" not in fixed + variances or ("Up" in fixed + variances and "View" in fixed + variances)
 
     def add_metadata(self, database):

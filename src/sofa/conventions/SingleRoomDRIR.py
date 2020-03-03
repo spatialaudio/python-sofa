@@ -32,8 +32,8 @@ class SingleRoomDRIR(_Base):
         self.default_objects["Emitter"]["count"] = 1
 
         self.conditions["must have 1 Emitter"] = lambda name, fixed, variances, count: name != "Emitter" or count == 1
-        self.conditions["must have Listener Up and View)"] = lambda name, fixed, variances, count: name != "Listener" or ("Up" in fixed + variances and "View" in fixed + variances)
-        self.conditions["must have Source Up and View)"] = lambda name, fixed, variances, count: name != "Source" or ("Up" in fixed + variances and "View" in fixed + variances)
+        self.conditions["must have Listener Up and View"] = lambda name, fixed, variances, count: name != "Listener" or ("Up" in fixed + variances and "View" in fixed + variances)
+        self.conditions["must have Source Up and View"] = lambda name, fixed, variances, count: name != "Source" or ("Up" in fixed + variances and "View" in fixed + variances)
 
     def add_metadata(self, database):
         super().add_metadata(database)

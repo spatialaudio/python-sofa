@@ -38,7 +38,7 @@ class SimpleHeadphoneIR(SimpleFreeFieldHRIR):
         return
 
     def set_default_spatial_values(self, spobj):
-        super.set_default_spatial_values(self, spobj)
+        super.set_default_spatial_values(spobj)
 
         self.set_default_Emitter(spobj)
         return

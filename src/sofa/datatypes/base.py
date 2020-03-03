@@ -32,24 +32,27 @@ class _Base(access.ProxyObject):
     def Type(self, value): self.database.Metadata.set_attribute("DataType", value)
 
     def optional_variance_names(self):
+        """Returns a list of standardized data elements that may vary between measurements"""
         vardims = []
         for k, v in self.standard_dimensions:
             if any(["I" in dims for dims in v]) and any(["M" in dims for dims in v]): vardims.append(k)
         return vardims
 
-    def initialize(self, sample_count, variances=[], string_length=None):
+    def initialize(self, sample_count=None, variances=[], string_length=None):
         """Create the necessary variables and attributes
 
         Parameters
         ----------
-        sample_count : int
-            Number of samples per measurement
+        sample_count : int, optional
+            Number of samples per measurement, mandatory if dimension N has not been defined
         variances : list
             Names of the variables that vary along dimension M
         string_length : int, optional
             Size of the longest data string
         """
-        self.database.Dimensions.create_dimension("N", sample_count)
+        if "N" not in self.database.Dimensions.list_dimensions():
+            if sample_count is None: raise ValueError("Missing sample count N!")
+            self.database.Dimensions.create_dimension("N", sample_count)
         if string_length is not None: self.database.Dimensions.create_dimension("S", string_length)
 
         default_values = self.database.convention.default_data

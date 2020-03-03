@@ -34,7 +34,7 @@ class SimpleFreeFieldHRIR(_Base):
 
         self.conditions["must have 1 Emitter"] = lambda name, fixed, variances, count: name != "Emitter" or count == 1
         #self.conditions["must have 2 Receivers"] = lambda name, fixed, variances, count: name != "Receiver" or count == 2
-        self.conditions["must have Listener Up and View)"] = lambda name, fixed, variances, count: name != "Listener" or ("Up" in fixed + variances and "View" in fixed + variances)
+        self.conditions["must have Listener Up and View"] = lambda name, fixed, variances, count: name != "Listener" or ("Up" in fixed + variances and "View" in fixed + variances)
 
     def add_metadata(self, database):
         super().add_metadata(database)
@@ -49,7 +49,7 @@ class SimpleFreeFieldHRIR(_Base):
         return
 
     def set_default_spatial_values(self, spobj):
-        super().set_default_spatial_values(self, spobj)
+        super().set_default_spatial_values(spobj)
 
         self.set_default_Receiver(spobj)
         return

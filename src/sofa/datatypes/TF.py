@@ -22,7 +22,7 @@ from .base import _Base
 
 
 class TF(_Base):
-    """Transfer Function data type:
+    """Transfer Function data type
 
     Real : `sofa.access.Variable`
         Real part of the complex spectrum, dimensions ('M', 'R', 'N')
@@ -45,7 +45,7 @@ class TF(_Base):
     @N.setter
     def N(self, value): self.N.set_values(value)
 
-    def initialize(self, sample_count, variances=[], string_length=None):
+    def initialize(self, sample_count=None, variances=[], string_length=None):
         super().initialize(sample_count, variances, string_length)
         var = self.database.Variables.create_variable("N", ("N",))
         # var.LongName = "frequency" # LongName not mandatory

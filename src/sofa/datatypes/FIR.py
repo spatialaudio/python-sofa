@@ -21,7 +21,7 @@
 from .base import _Base
 
 class FIR(_Base):
-    """Finite Impulse Response data type:
+    """Finite Impulse Response data type
 
     IR : `sofa.access.Variable`
         Discrete time impulse responses, dimensions ('M', 'R', 'N')
