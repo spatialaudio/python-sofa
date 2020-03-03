@@ -54,51 +54,59 @@ class ProxyObject:
     @staticmethod
     def _valid_data_name(name):
         if "_" in name: return False
-        if name in ["name", "database", "dataset", "Metadata", "Variables"]: return False
+        if name in ["name", "database", "dataset", "Metadata", "Variables", "Type", "Units"]: return False
         return True
+
+    def _get_dataset_value_or_none(self, name):
+        if self.dataset is None: raise Exception("No dataset open!")
+        if not ProxyObject._valid_data_name(name): raise Exception("{0} is not a valid name for a dataset value.")
+
+        container_name = self.name + name
+        if container_name in self.database.Variables.list_variables():
+            # attribute is a variable, return proper access class
+            var = self.database.Variables.get_variable(container_name)
+            if "S" not in var.dimensions(): return var
+            else: return self.database.Variables.get_string_array(container_name)
+        elif container_name in self.database.Metadata.list_attributes():
+            # attribute is an attribute in the netcdf-4 dataset
+            return self.database.Metadata.get_attribute(container_name)
+        else:
+            return None
 
     def __getattribute__(self, name):
         try:
             return super().__getattribute__(name)
         except AttributeError:
-            if not ProxyObject._valid_data_name(name) or self.dataset is None: raise
-
-            container_name = self.name + name
-            if container_name in self.database.Variables.list_variables():
-                # attribute is a variable, return proper access class
-                return self.database.Variables.get_variable(container_name)
-            elif container_name in self.database.Metadata.list_attributes():
-                # attribute is an attribute in the netcdf-4 dataset
-                return self.database.Metadata.get_attribute(container_name)
-            else:
-                print(container_name, "not part of .SOFA dataset")
+            if not ProxyObject._valid_data_name(name): raise
+            value = self._get_dataset_value_or_none(name)
+            if value is None:
+                print(self.name+name, "not part of .SOFA dataset")
                 raise
+            return value
 
     def __setattr__(self, name, value):
         if not ProxyObject._valid_data_name(name) or self.dataset is None:
             super().__setattr__(name, value)
             return
 
-        try:
-            self.__getattribute__(name)
-        except:
-            raise  # attribute does not exist, so we don't know what or where it should be
+        existing = self._get_dataset_value_or_none(name)
+        if existing is None:
+            if type(value) == str: # attempting to set an attribute
+                print("Adding attribute {0} to .SOFA dataset".format(self.name+name))
+                self.create_attribute(name, value)
+                return
+            raise AttributeError("{0} not part of {1}, use create_... instead.".format(name, self.name)) # we don't know what or where it should be
 
         container_name = self.name + name
 
-        if self.database.Variables is not None and container_name in self.database.Variables.list_variables():
-            # attempting to set directly to a variable
-            try:
-                self.__getattribute__(name).set_values(value)
-            except:
-                print("Failed to set values on variable", container_name, "directly, use Variable.set_values instead.")
-                raise
-        elif self.database.Metadata is not None and container_name in self.database.Metadata.list_attributes():
-            # setting a netCDF4 attribute
+        if type(value) == str:
             self.database.Metadata.set_attribute(container_name, value)
             return
-        else:
-            super().__setattr__(name, value)
+
+        try: existing.set_values(value)
+        except:
+            print("Failed to set values on", container_name, "directly, use set_values instead.")
+            raise
 
     def create_attribute(self, name, value=""):
         """Creates the attribute in the netCDF4 dataset with its full name `ProxyObject.name`+name"""

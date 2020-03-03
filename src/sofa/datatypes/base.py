@@ -37,13 +37,11 @@ class _Base(access.ProxyObject):
             if any(["I" in dims for dims in v]) and any(["M" in dims for dims in v]): vardims.append(k)
         return vardims
 
-    def initialize(self, measurement_count, sample_count, variances=[], string_length=None):
+    def initialize(self, sample_count, variances=[], string_length=None):
         """Create the necessary variables and attributes
 
         Parameters
         ----------
-        measurement_count : int
-            Number of measurements
         sample_count : int
             Number of samples per measurement
         variances : list
@@ -51,13 +49,12 @@ class _Base(access.ProxyObject):
         string_length : int, optional
             Size of the longest data string
         """
-        self.database.Dimensions.create_dimension("M", measurement_count)
         self.database.Dimensions.create_dimension("N", sample_count)
         if string_length is not None: self.database.Dimensions.create_dimension("S", string_length)
 
-        default_values = self.database._convention.default_data
+        default_values = self.database.convention.default_data
 
-        for k, v in self.standard_dimensions:
+        for k, v in self.standard_dimensions.items():
             i = 0 if k not in variances else 1
             if any(["S" in dims for dims in v]):
                 var = self.create_string_array(k, v[i])

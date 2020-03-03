@@ -70,6 +70,9 @@ class Dimensions:
         return self.dataset.dimensions[dim].size
 
     def create_dimension(self, dim, size):
+        if dim in self.dataset.dimensions:
+            print("Dimension {0} already initialized to {1}, cannot re-initialize to {2}.".format(dim, self.get_dimension(dim), size))
+            return
         self.dataset.createDimension(dim, size)
 
     def list_dimensions(self):

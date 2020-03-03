@@ -18,47 +18,31 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-from .base import _Base
-
-from .. import spatial
+from .SimpleFreeFieldHRIR import SimpleFreeFieldHRIR
 
 ### incomplete! Requires extending the data access to include per-measurement strings
-class SimpleHeadphoneIR(_Base):
+class SimpleHeadphoneIR(SimpleFreeFieldHRIR):
     name = "SimpleHeadphoneIR"
     version = "0.2"
     def __init__(self):
-        _Base.__init__(self)
-        self.default_objects["Source"]["coordinates"].Position = [0,0,1]
-        self.default_objects["Source"]["system"] = spatial.Coordinates.System.Spherical
+        super().__init__()
         self.default_objects["Emitter"]["count"] = 2
         self.default_objects["Receiver"]["count"] = 2
-
-        self.head_radius = 0.09
 
         self.conditions["must have 2 Emitters"] = lambda name, info_states, count: name != "Emitter" or count == 2
         self.conditions["must have 2 Receivers"] = lambda name, info_states, count: name != "Receiver" or count == 2
 
-    def add_metadata(self, dataset):
-        _Base.add_general_defaults(dataset)
+    def add_metadata(self, database):
+        super().add_metadata(database)
 
-        dataset.SOFAConventions = self.name
-        dataset.SOFAConventionsVersion = self.version
-        dataset.DataType = "FIR"
-        dataset.RoomType = "free field"
-        dataset.DatabaseName = ""
-        dataset.ListenerShortName = ""
         return
 
     def set_default_spatial_values(self, spobj):
-        _Base._set_default_spatial_values(self, spobj)
+        super.set_default_spatial_values(self, spobj)
 
         self.set_default_Emitter(spobj)
-        self.set_default_Receiver(spobj)
         return
     
     def set_default_Emitter(self, spobj):
         if spobj.name != "Emitter": return
         spobj.Position.set_values([[0,self.head_radius,0], [0,-self.head_radius,0]], dim_order=("E", "C"), repeat_dim=("M"))
-    def set_default_Receiver(self, spobj):
-        if spobj.name != "Receiver": return
-        spobj.Position.set_values([[0,self.head_radius,0], [0,-self.head_radius,0]], dim_order=("R", "C"), repeat_dim=("M"))

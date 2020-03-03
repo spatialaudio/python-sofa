@@ -32,6 +32,10 @@ class Shoebox(_Base):
     CornerB : `sofa.spatial.Coordinates`
         Opposite corner of room cuboid, dimensions ('I', 'C') or ('M', 'C')
     """
+    def __init__(self, database):
+        super().__init__(database)
+        self.standard_dimensions["CornerA"] = [("I", "C"), ("M", "C")]
+        self.standard_dimensions["CornerB"] = [("I", "C"), ("M", "C")]
 
     @property
     def CornerA(self):
@@ -42,3 +46,20 @@ class Shoebox(_Base):
     def CornerB(self):
         """Opposite corner of room cuboid"""
         return spatial.Coordinates(self, "CornerB")
+
+    def initialize(self, variances=[], string_length=None):
+        """Create the necessary variables and attributes
+
+        Parameters
+        ----------
+        measurement_count : int
+            Number of measurements
+        sample_count : int
+            Number of samples per measurement
+        variances : list
+            Names of the variables that vary along dimension M
+        string_length : int, optional
+            Size of the longest data string
+        """
+        self.CornerA.initialize("CornerA" in variances)
+        self.CornerB.initialize("CornerB" in variances)

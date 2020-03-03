@@ -26,12 +26,22 @@ class _Base:
         self.default_objects = {
             "Listener" : {
                 "count" : 1,
+                "coordinates" : {},
+                "system" : {}
                 },
-            "Receiver" : {},
+            "Receiver" : {
+                "coordinates": {},
+                "system": {}
+            },
             "Source" : {
                 "count" : 1,
+                "coordinates" : {},
+                "system" : {}
                 },
-            "Emitter" : {},
+            "Emitter" : {
+                "coordinates": {},
+                "system": {}
+            },
             }
         self.conditions = {
             "only 1 Listener considered" : lambda name, fixed, variances, count: name != "Listener" or count == 1,
@@ -52,6 +62,7 @@ class _Base:
             }
         return
 
+    @staticmethod
     def add_general_defaults(database):
         database.Metadata.set_attribute("Conventions", "SOFA")
         database.Metadata.set_attribute("Version", "1.0")
@@ -66,13 +77,19 @@ class _Base:
 
         database.Metadata.set_attribute("RoomType", "free field")
         database.Metadata.set_attribute("DataType", "FIR")
+
+        database.Dimensions.create_dimension("I", 1)
+        database.Dimensions.create_dimension("C", 3)
         return
 
-    def validate_spatial_object_settings(self, name, info_states, count):
-        for con in self.conditions:
-            if not self.conditions[con](name, info_states, count): raise Exception(con)
+    def add_metadata(self, database):
+        _Base.add_general_defaults(database)
 
-    def _set_default_spatial_values(self, spobj):
+    def validate_spatial_object_settings(self, name, fixed, variances, count):
+        for con in self.conditions:
+            if not self.conditions[con](name, fixed, variances, count): raise Exception(con)
+
+    def set_default_spatial_values(self, spobj):
         name = spobj.name
         if name not in self.default_objects: return
         coordinates = self.default_objects[name]["coordinates"]

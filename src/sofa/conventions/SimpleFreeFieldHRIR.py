@@ -37,7 +37,8 @@ class SimpleFreeFieldHRIR(_Base):
         self.conditions["must have Listener Up and View)"] = lambda name, fixed, variances, count: name != "Listener" or ("Up" in fixed + variances and "View" in fixed + variances)
 
     def add_metadata(self, database):
-        _Base.add_general_defaults(database)
+        super().add_metadata(database)
+
         database.Metadata.set_attribute("SOFAConventions", self.name)
         database.Metadata.set_attribute("SOFAConventionsVersion", self.version)
 
@@ -48,7 +49,7 @@ class SimpleFreeFieldHRIR(_Base):
         return
 
     def set_default_spatial_values(self, spobj):
-        _Base._set_default_spatial_values(self, spobj)
+        super().set_default_spatial_values(self, spobj)
 
         self.set_default_Receiver(spobj)
         return

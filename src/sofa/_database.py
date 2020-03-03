@@ -53,7 +53,7 @@ class Database(access.ProxyObject):
         self._Variables = None
 
     @staticmethod
-    def create(path, convention, measurements):
+    def create(path, convention, dimensions=None):
         """Create a new .sofa file following a SOFA convention
 
         Parameters
@@ -62,8 +62,14 @@ class Database(access.ProxyObject):
             Relative or absolute path to .sofa file    
         convention : str
             Name of the SOFA convention to create, see :func:`sofa.conventions.implemented`
-        measurements : int
-            Number of measurements
+        dimensions : dict or int, optional
+            Number of measurements or dict of dimensions to define
+            (standard dimensions:
+                "M": measurements,
+                "R": receivers,
+                "E": emitters,
+                "N": data length
+            )
 
         Returns
         -------
@@ -71,13 +77,16 @@ class Database(access.ProxyObject):
         """
         sofa = Database()
         sofa.dataset = ncdf.Dataset(path, mode="w")
-        sofa.Dimensions.create_dimension("I", 1)
-        sofa.Dimensions.create_dimension("C", 3)
-        sofa.Dimensions.create_dimension("M", measurements)
+        if dimensions is not None:
+            try:
+                for d,v in dimensions.items():
+                    sofa.Dimensions.create_dimension(d, v)
+            except:
+                sofa.Dimensions.create_dimension("M", dimensions)
 
         sofa._convention = conventions.List[convention]()
 
-        sofa._convention.add_metadata(sofa)
+        sofa.convention.add_metadata(sofa)
         sofa.DateCreated = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         return sofa
 
@@ -134,6 +143,9 @@ class Database(access.ProxyObject):
         if self.dataset is None: return
         self.DateModified = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         self.dataset.sync()
+
+    @property
+    def convention(self): return self._convention
 
     ## data    
     @property

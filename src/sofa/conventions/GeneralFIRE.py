@@ -27,7 +27,8 @@ class GeneralFIRE(_Base):
     version = "1.0"
 
     def add_metadata(self, database):
-        _Base.add_general_defaults(database)
+        super().add_metadata(database)
+
         database.Metadata.set_attribute("SOFAConventions", self.name)
         database.Metadata.set_attribute("SOFAConventionsVersion", self.version)
 

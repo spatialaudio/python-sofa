@@ -280,14 +280,15 @@ class Coordinates(access.Variable):
     def initialize(self, varies, defaults=None):
         super().initialize(self.standard_dimensions[0 if not varies else 1])
         if defaults is not None:
-            self.set_system(defaults[1])
-            self.set_values(defaults[0])
+            values, system = defaults
         elif self._descriptor in self.default_values:
-            self.set_system(self.default_values[self._descriptor][1])
-            self.set_values(self.default_values[self._descriptor][0])
+            values, system = self.default_values[self._descriptor]
         else:
-            self.set_system(self.default_values["Position"][1])
-            self.set_values(self.default_values["Position"][0])
+            values, system = self.default_values["Position"]
+
+        self.set_system(system)
+        self.set_values(values, dim_order=("C",),
+                        repeat_dim=tuple([d for d in self.standard_dimensions[-1] if d != "C"]))
 
     @property
     def Type(self):
@@ -460,6 +461,26 @@ class Coordinates(access.Variable):
         angle_unit : str, optional
             Angle units of the provided values
         """
+        if not self.exists():
+            raise Exception("failed to set values of {0}, variable not initialized".format(self.name))
 
-        super().set_values(System.convert(values, system, self.Type, angle_unit, self.Units),
-                           indices, dim_order, repeat_dim)
+        if system is None: system = self.Type
+        if angle_unit is None: angle_unit = self.Units
+
+        if indices is not None and "C" in indices:
+            iwoc = {i: indices[i] for i in indices if i != "C"}
+            new_values, sls = self._reorder_values_for_set(values,
+                                                           indices=iwoc,
+                                                           dim_order=dim_order,
+                                                           repeat_dim=repeat_dim)
+            new_order = access.get_default_dimension_order(self.dimensions(), iwoc)
+            sls[new_order.index("C")] = indices["C"]
+            self._Matrix[sls] = System.convert(new_values,
+                                               new_order,
+                                               system, self.Type,
+                                               angle_unit, self.Units
+                                              )[access.get_slice_tuple(new_order, {"C": indices["C"]})]
+        else:
+            new_values, sls = self._reorder_values_for_set(values, indices, dim_order, repeat_dim)
+            new_order = access.get_default_dimension_order(self.dimensions(), indices)
+            self._Matrix[sls] = System.convert(new_values, new_order, system, self.Type, angle_unit, self.Units)

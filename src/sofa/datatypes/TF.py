@@ -45,8 +45,8 @@ class TF(_Base):
     @N.setter
     def N(self, value): self.N.set_values(value)
 
-    def initialize(self, measurement_count, sample_count, variances=[], string_length=None):
-        super().initialize(measurement_count, sample_count, variances, string_length)
+    def initialize(self, sample_count, variances=[], string_length=None):
+        super().initialize(sample_count, variances, string_length)
         var = self.database.Variables.create_variable("N", ("N",))
         # var.LongName = "frequency" # LongName not mandatory
         var.Units = "hertz"

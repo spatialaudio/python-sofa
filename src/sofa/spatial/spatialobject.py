@@ -45,6 +45,19 @@ class SpatialObject(access.ProxyObject):
         """Up (z-axis) of the spatial object relative to its reference system"""
         return Coordinates(self, "Up")
 
+    @property
+    def Type(self):
+        """Coordinate syste, of the values"""
+        if not self.exists():
+            raise Exception("failed to get Type of {0}, variable not initialized".format(self.name))
+        if self._unit_proxy is None: return self._Matrix.Type
+        return self._unit_proxy.Type
+    @Type.setter
+    def Type(self, value):
+        if not self.exists():
+            raise Exception("failed to set Type of {0}, variable not initialized".format(self.name))
+        self._Matrix.Type = value
+
     def initialize(self, fixed=[], variances=[], count=None):
         """Create the necessary variables and attributes
 
@@ -63,20 +76,23 @@ class SpatialObject(access.ProxyObject):
             raise ValueError("{0}.initialize: Missing 'Position' in fixed or variances argument".format(self.name))
         if "Up" in mentioned and "View" not in mentioned:
             raise ValueError("{0}.initialize: Missing 'View' in fixed or variances argument".format(self.name))
-        self.database._convention.validate_spatial_object_settings(self.name, variances, count)
-
-        if count is None:
-            if "count" in self.database._convention.default_objects[self.name].keys():
-                count = self.database._convention.default_objects[self.name]["count"]
-            else:
-                raise Exception(self.name, "count missing!")
 
         ldim = self.Position.get_local_dimension()
-        if ldim is not None and self.database.Dimensions.get_dimension(ldim) is None:
+        if ldim is None:
+            if count is None: count = 1
+        else:
+            if count is None and ldim in self.database.Dimensions.list_dimensions():
+                count = self.database.Dimensions.get_dimension(ldim)
+            if count is None and "count" in self.database.convention.default_objects[self.name].keys():
+                count = self.database.convention.default_objects[self.name]["count"]
+            if count is None: raise Exception(self.name, "{0} count missing!".format(self.name))
+        self.database.convention.validate_spatial_object_settings(self.name, fixed, variances, count)
+        if ldim is not None and ldim not in self.database.Dimensions.list_dimensions():
             self.database.Dimensions.create_dimension(ldim, count)
 
+        self.create_attribute("Description")
         self.initialize_coordinates(fixed, variances)
-        self.database._convention.set_default_spatial_values(self)
+        self.database.convention.set_default_spatial_values(self)
 
     def initialize_coordinates(self, fixed, variances):
         mentioned = fixed + variances

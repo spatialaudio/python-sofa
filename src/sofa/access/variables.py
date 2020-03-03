@@ -123,9 +123,7 @@ class _VariableBase:
         except AttributeError:
             try:
                 return self._Matrix.__getattribute__(name)
-            except:
-                print(name, "not part of dataset variable", self.name)
-                raise
+            except: raise
 
     def __setattr__(self, name, value):
         if '_' in name:
@@ -137,7 +135,7 @@ class _VariableBase:
 
     def initialize(self, dims, data_type="d", fill_value=0):
         """Create the variable in the underlying netCDF4 dataset"""
-        defined = self.database.Variables.list_variables()
+        defined = self.database.Dimensions.list_dimensions()
         missing = []
         for d in dims:
             if d not in defined: missing.append(d)
@@ -206,7 +204,7 @@ class _VariableBase:
             raise Exception("failed to get values of {0}, variable not initialized".format(self.name))
         return get_values_from_array(self._Matrix, self.dimensions(), indices=indices, dim_order=dim_order)
 
-    def set_values(self, values, indices=None, dim_order=None, repeat_dim=None):
+    def _reorder_values_for_set(self, values, indices=None, dim_order=None, repeat_dim=None):
         """
         Parameters
         ----------
@@ -220,7 +218,7 @@ class _VariableBase:
             Tuple of dimension names along which to repeat the values
         """
         if not self.exists():
-            raise Exception("failed to set values of {0}, variable not initialized".format(self.name))
+            raise Exception("Variable {0} not initialized".format(self.name))
         dimensions = self.dimensions()
         if "I" in dimensions:
             dimensions = list(dimensions)
@@ -280,6 +278,25 @@ class _VariableBase:
                     raise Exception("cannot assign values to variable {0}: missing dimension {1}".format(self.name, d))
                     return None
             new_values = np.transpose(new_values, do)
+
+        return new_values, sls
+
+    def set_values(self, values, indices=None, dim_order=None, repeat_dim=None):
+        """
+        Parameters
+        ----------
+        values : np.ndarray
+            New values for the array range
+        indices : dict(key:str, value:int or slice), optional
+            Key: dimension name, value: indices to be set, complete axis assumed if not provided
+        dim_order : tuple of str, optional
+            Dimension names in provided order, regular order assumed
+        repeat_dim : tuple of str, optional
+            Tuple of dimension names along which to repeat the values
+        """
+        if not self.exists():
+            raise Exception("failed to set values of {0}, variable not initialized".format(self.name))
+        new_values, sls = self._reorder_values_for_set(values, indices, dim_order, repeat_dim)
 
         # assign
         self._Matrix[sls] = new_values

@@ -35,11 +35,12 @@ class SingleRoomDRIR(_Base):
         self.conditions["must have Listener Up and View)"] = lambda name, fixed, variances, count: name != "Listener" or ("Up" in fixed + variances and "View" in fixed + variances)
         self.conditions["must have Source Up and View)"] = lambda name, fixed, variances, count: name != "Source" or ("Up" in fixed + variances and "View" in fixed + variances)
 
-    def add_metadata(self, dataset):
-        _Base.add_general_defaults(dataset)
+    def add_metadata(self, database):
+        super().add_metadata(database)
 
-        dataset.SOFAConventions = self.name
-        dataset.SOFAConventionsVersion = self.version
-        dataset.DataType = "FIR"
-        dataset.RoomType = "reverberant"
+        database.Metadata.set_attribute("SOFAConventions", self.name)
+        database.Metadata.set_attribute("SOFAConventionsVersion", self.version)
+
+        database.Data.Type = "FIR"
+        database.Room.Type = "reverberant"
         return
