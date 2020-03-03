@@ -6,6 +6,7 @@ Version 0.2.0 (2020-03-03):
    - Reworked the initialization process and DataType creation
    - Reworked RoomTypes
    - Ensured conventions conform to SOFA 1.0
+   - Updated usage example
 
 Version 0.1.2 (2020-02-25):
    - Fixed issues in relative coordinate access.
